@@ -1,0 +1,43 @@
+async function request(path, options = {}) {
+  const res = await fetch(path, {
+    ...options,
+    headers: { 'Content-Type': 'application/json', ...(options.headers || {}) },
+  });
+  const text = await res.text();
+  let data;
+  try { data = text ? JSON.parse(text) : null; } catch { data = { raw: text }; }
+  if (!res.ok) {
+    const msg = data?.error || `HTTP ${res.status}`;
+    throw new Error(msg);
+  }
+  return data;
+}
+
+export const conceptsApi = {
+  list: () => request('/api/concepts'),
+  create: (body) => request('/api/concepts', { method: 'POST', body: JSON.stringify(body) }),
+  get: (id) => request('/api/concepts/' + id),
+  update: (id, patch) => request('/api/concepts/' + id, { method: 'PUT', body: JSON.stringify(patch) }),
+  remove: (id) => request('/api/concepts/' + id, { method: 'DELETE' }),
+};
+
+export const chatApi = {
+  send: ({ messages, system, context }) =>
+    request('/api/chat', { method: 'POST', body: JSON.stringify({ messages, system, context }) }),
+};
+
+export const generateApi = {
+  artefact: ({ brief, trend, artefact }) =>
+    request('/api/generate', { method: 'POST', body: JSON.stringify({ brief, trend, artefact }) }),
+};
+
+export const ARTEFACT_META = {
+  claude: { label: 'CLAUDE.md',       sub: 'Instructions für AI-Coding-Agent',  icon: 'bolt',     lang: 'markdown', ext: '.md' },
+  prd:    { label: 'PRD',             sub: 'Product Requirements + Gherkin',    icon: 'book',     lang: 'markdown', ext: '.md' },
+  tech:   { label: 'Tech Spec',       sub: 'Data Model, API, Components',       icon: 'grid',     lang: 'markdown', ext: '.md' },
+  deck:   { label: 'Management Deck', sub: '6 Slides für Stakeholder',          icon: 'chart',    lang: 'markdown', ext: '.md' },
+  prompt: { label: 'Prototype Prompt',sub: 'Copy-Paste in Claude Code / v0',    icon: 'sparkles', lang: 'text',     ext: '.txt' },
+  email:  { label: 'Kickoff Email',   sub: 'Stakeholder-Alignment-Mail',        icon: 'message',  lang: 'markdown', ext: '.md' },
+};
+
+export const ARTEFACT_IDS = Object.keys(ARTEFACT_META);
