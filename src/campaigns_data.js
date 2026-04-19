@@ -1,0 +1,106 @@
+// Campaigns + Capture + Cluster-Review
+export const CIN_CAMPAIGNS = (function () {
+  const campaigns = [
+    {
+      id: "c1",
+      title: "Was verändert Mobilität bis 2030?",
+      question: "Welche Signale, Technologien und Verhaltensweisen werden das Mobilitätssystem im DACH-Raum am stärksten verändern?",
+      status: "Active",
+      opened: "14 d ago",
+      closes: "in 9 d",
+      owner: "S. Rüegg",
+      participants: 47,
+      external: 12,
+      signals: 184,
+      clusters: 11,
+      proposed: 3,
+      accepted: 1,
+      tags: ["mobility", "future", "dach"],
+    },
+    {
+      id: "c2",
+      title: "AI at work — was ist in 18 Monaten Standard?",
+      question: "Welche AI-Patterns verändern Knowledge-Work bis Ende 2027?",
+      status: "Active",
+      opened: "21 d ago",
+      closes: "in 2 d",
+      owner: "A. Koch",
+      participants: 82,
+      external: 34,
+      signals: 412,
+      clusters: 18,
+      proposed: 6,
+      accepted: 2,
+      tags: ["AI", "workplace"],
+    },
+    {
+      id: "c3",
+      title: "Circular Materials — Signale aus Forschung",
+      question: "Frühwarnsystem für materialwissenschaftliche Durchbrüche.",
+      status: "Open",
+      opened: "3 d ago",
+      closes: "in 27 d",
+      owner: "L. Meier",
+      participants: 18,
+      external: 5,
+      signals: 42,
+      clusters: 4,
+      proposed: 1,
+      accepted: 0,
+      tags: ["materials", "research"],
+    },
+    {
+      id: "c4",
+      title: "Q4 Trust & Media Retrospective",
+      question: "Was hat sich 2025 in Medien-Trust verändert?",
+      status: "Closed",
+      opened: "62 d ago",
+      closes: "closed",
+      owner: "N. Fischer",
+      participants: 94,
+      external: 28,
+      signals: 521,
+      clusters: 22,
+      proposed: 8,
+      accepted: 5,
+      tags: ["media", "trust"],
+    },
+  ];
+
+  const ideas = [
+    { id: "i1", author: "Marko T.", role: "external · ETH", text: "Züri fährt Robotaxi-Pilot mit 40 Waymo-lizenzierten Fahrzeugen ab Herbst — Kantonsbewilligung letzte Woche erteilt.", url: "nzz.ch/…", lang: "DE", cluster: "cl1", reactions: { relevant: 14, surprising: 8, disagree: 1 }, ai: 0.94, ago: "7 min", type: "news" },
+    { id: "i2", author: "Li W.", role: "member", text: "Sixt+ monthly subscriptions now 3× rental revenue in DE. Ownership is collapsing in cities, but exploding in rural areas.", url: "handelsblatt.com/…", lang: "EN", cluster: "cl2", reactions: { relevant: 22, surprising: 12, disagree: 2 }, ai: 0.88, ago: "1 h", type: "market" },
+    { id: "i3", author: "P. Huber", role: "member", text: "Shared eBike fleets are draining city budgets — Zürich considers transfer to private operators.", lang: "DE", cluster: "cl3", reactions: { relevant: 9, surprising: 18, disagree: 4 }, ai: 0.72, ago: "2 h", type: "idea" },
+    { id: "i4", author: "Anna G.", role: "external · SBB", text: "On-demand minibus pilot in Graubünden hits 78% fill rate — better than fixed routes. Union pushing back.", lang: "EN", cluster: "cl3", reactions: { relevant: 19, surprising: 11, disagree: 3 }, ai: 0.81, ago: "3 h", type: "pilot" },
+    { id: "i5", author: "Jonas B.", role: "external · university", text: "Gen Z in CH: 31% don't want a driving license. 10pt drop vs 2022.", url: "bfs.admin.ch", lang: "DE", cluster: "cl4", reactions: { relevant: 28, surprising: 24, disagree: 2 }, ai: 0.9, ago: "5 h", type: "research" },
+    { id: "i6", author: "M. Santos", role: "member", text: "OEMs launching used-EV subscriptions tied to battery health — new secondary market forming.", lang: "EN", cluster: "cl2", reactions: { relevant: 11, surprising: 9, disagree: 1 }, ai: 0.77, ago: "6 h", type: "corp" },
+    { id: "i7", author: "Kira R.", role: "member", text: "Cargo-bike logistics firms merging — margin pressure. 2 bankruptcies last month in CH.", lang: "DE", cluster: "cl5", reactions: { relevant: 8, surprising: 6, disagree: 0 }, ai: 0.66, ago: "9 h", type: "market" },
+    { id: "i8", author: "Ed P.", role: "external · think tank", text: "EU parliament: combustion ban 2035 might be softened to 'synthetic fuel exception' — industry lobbied hard.", lang: "EN", cluster: "cl6", reactions: { relevant: 17, surprising: 7, disagree: 9 }, ai: 0.85, ago: "11 h", type: "policy" },
+    { id: "i9", author: "S. Rüegg", role: "owner", text: "V2X pilots in Basel: bidirectional charging used as grid buffer during peak. 12 MW aggregated.", lang: "DE", cluster: "cl7", reactions: { relevant: 15, surprising: 13, disagree: 1 }, ai: 0.79, ago: "1 d", type: "pilot" },
+    { id: "i10", author: "F. Becker", role: "member", text: "Delivery robots (Starship style) allowed on Swiss sidewalks — federal ordinance draft leaked.", lang: "DE", cluster: "cl7", reactions: { relevant: 12, surprising: 16, disagree: 3 }, ai: 0.74, ago: "1 d", type: "policy" },
+    { id: "i11", author: "AI Scout", role: "agent", text: "Waymo reports 1M autonomous rides/week globally — inflection point for public acceptance?", url: "waymo.com", lang: "EN", cluster: "cl1", reactions: { relevant: 21, surprising: 14, disagree: 0 }, ai: 0.96, ago: "1 d", type: "news" },
+    { id: "i12", author: "AI Scout", role: "agent", text: "VW splits Porsche mobility services unit — signals strategic retreat from ride-hailing.", lang: "EN", cluster: "cl2", reactions: { relevant: 8, surprising: 11, disagree: 0 }, ai: 0.71, ago: "2 d", type: "corp" },
+  ];
+
+  const clusters = [
+    { id: "cl1", label: "Autonomous fleets go live",     size: 3, x: 0.68, y: 0.22, color: "#60A5FA", confidence: 0.94, proposed: true,  trendName: "Autonomous Fleets at Scale" },
+    { id: "cl2", label: "Post-ownership economics",      size: 3, x: 0.36, y: 0.30, color: "#FBBF24", confidence: 0.89, proposed: true,  trendName: "Post-Ownership Mobility" },
+    { id: "cl3", label: "Demand-responsive public transit", size: 2, x: 0.58, y: 0.62, color: "#34D399", confidence: 0.78, proposed: false },
+    { id: "cl4", label: "License-less Gen Z",            size: 1, x: 0.20, y: 0.70, color: "#F472B6", confidence: 0.72, proposed: false },
+    { id: "cl5", label: "Cargo-bike consolidation",      size: 1, x: 0.82, y: 0.78, color: "#A78BFA", confidence: 0.55, proposed: false },
+    { id: "cl6", label: "Policy rollback risk",          size: 1, x: 0.14, y: 0.40, color: "#FB7185", confidence: 0.68, proposed: false },
+    { id: "cl7", label: "Vehicles as grid & delivery",   size: 2, x: 0.44, y: 0.86, color: "#A78BFA", confidence: 0.81, proposed: true,  trendName: "Vehicles-as-Infrastructure" },
+  ];
+
+  const participants = [
+    { name: "S. Rüegg", role: "Owner", contrib: 4, initials: "SR", color: "#3B82F6" },
+    { name: "A. Koch", role: "Member", contrib: 2, initials: "AK", color: "#A78BFA" },
+    { name: "Marko T.", role: "External · ETH", contrib: 3, initials: "MT", color: "#F472B6" },
+    { name: "Anna G.", role: "External · SBB", contrib: 2, initials: "AG", color: "#34D399" },
+    { name: "Jonas B.", role: "External", contrib: 1, initials: "JB", color: "#FBBF24" },
+    { name: "P. Huber", role: "Member", contrib: 1, initials: "PH", color: "#FB7185" },
+    { name: "+41 more", role: "", contrib: null, initials: "", color: "#1F3052" },
+  ];
+
+  return { campaigns, ideas, clusters, participants };
+})();

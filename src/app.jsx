@@ -1,0 +1,90 @@
+import { useState, useEffect } from 'react';
+import { CIN_DATA } from './data.js';
+import { CIN_CAMPAIGNS } from './campaigns_data.js';
+import { CIN_I18N } from './i18n.js';
+import { Sidebar, Header } from './shell.jsx';
+import { Dashboard } from './dashboard.jsx';
+import { Explorer } from './explorer.jsx';
+import { TrendDetail } from './detail.jsx';
+import { ProcessPipeline, AnalyticsHub } from './process.jsx';
+import { CampaignWorkspace, CaptureDialog, ClusterReview } from './campaigns.jsx';
+import { AIScout, Library, TweaksPanel } from './panels.jsx';
+import { InitiativeDetail } from './initiative.jsx';
+import { useLocation, parseRoute, buildPath } from './router.js';
+
+const App = () => {
+  const data = CIN_DATA;
+  const campaignsData = CIN_CAMPAIGNS;
+  const { pathname, navigate } = useLocation();
+  const parsed = parseRoute(pathname);
+  const { route, trendId, campaignId, initiativeId, processStage } = parsed;
+
+  const [captureOpen, setCaptureOpen] = useState(false);
+  const [clusterReviewId, setClusterReviewId] = useState(null);
+  const [lang, setLang] = useState("de");
+  const [search, setSearch] = useState("");
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+  const [aiOpen, setAiOpen] = useState(false);
+  const [tweaksOpen, setTweaksOpen] = useState(false);
+  const [tweaks, setTweaks] = useState({
+    density: "regular",
+    accent: "blue",
+    sidebar: "full",
+    ai: "ambient",
+  });
+
+  const t = key => (CIN_I18N[lang]?.[key] ?? key);
+
+  useEffect(() => {
+    const accentMap = { blue: "#3B82F6", violet: "#A78BFA", teal: "#14B8A6", amber: "#F59E0B" };
+    document.documentElement.style.setProperty("--accent", accentMap[tweaks.accent] || "#3B82F6");
+  }, [tweaks.accent]);
+  useEffect(() => { setSidebarCollapsed(tweaks.sidebar === "icons"); }, [tweaks.sidebar]);
+  useEffect(() => {
+    document.body.style.fontSize = tweaks.density === "compact" ? "12.5px" : tweaks.density === "cozy" ? "13.5px" : "13px";
+  }, [tweaks.density]);
+
+  useEffect(() => { window.__openAI = () => setAiOpen(true); }, []);
+
+  const goTo = (r, sub) => navigate(buildPath({ route: r, processStage: sub }));
+  const openTrend = id => navigate(buildPath({ route: "trendDetail", trendId: id }));
+  const backFromTrend = () => navigate(buildPath({ route: "explore" }));
+  const openCampaign = id => navigate(buildPath({ route: "campaignWorkspace", campaignId: id }));
+  const backToProcess = () => navigate(buildPath({ route: "process", processStage: "scout" }));
+  const openInitiative = id => navigate(buildPath({ route: "initiativeDetail", initiativeId: id }));
+  const backFromInitiative = () => navigate(buildPath({ route: "process", processStage: "initiative" }));
+  const setProcessStage = stage => navigate(buildPath({ route: "process", processStage: stage }));
+
+  let content;
+  if (route === "dashboard")              content = <Dashboard data={data} campaignsData={campaignsData} onGo={goTo} onOpenTrend={openTrend} onOpenCapture={() => setCaptureOpen(true)} onOpenTweaks={() => setTweaksOpen(true)} onOpenAI={() => setAiOpen(true)}/>;
+  else if (route === "explore")           content = <Explorer t={t} data={data} search={search} onOpenTrend={openTrend}/>;
+  else if (route === "trendDetail")       content = <TrendDetail t={t} data={data} trendId={trendId} onBack={backFromTrend}/>;
+  else if (route === "process")           content = <ProcessPipeline data={data} campaignsData={campaignsData} stage={processStage} setStage={setProcessStage} onOpenCampaign={openCampaign} onOpenCluster={id => setClusterReviewId(id)} onOpenCapture={() => setCaptureOpen(true)} onOpenInitiative={openInitiative}/>;
+  else if (route === "campaignWorkspace") content = <CampaignWorkspace {...campaignsData} campaignId={campaignId} onBack={backToProcess} onOpenCapture={() => setCaptureOpen(true)} onOpenCluster={id => setClusterReviewId(id)}/>;
+  else if (route === "initiativeDetail")  content = <InitiativeDetail projects={data.projects} trends={data.trends} projectId={initiativeId} onBack={backFromInitiative}/>;
+  else if (route === "analytics")         content = <AnalyticsHub t={t} data={data} onOpenTrend={openTrend}/>;
+  else if (route === "initiatives")       content = <ProcessPipeline data={data} campaignsData={campaignsData} stage="initiative" setStage={setProcessStage} onOpenCampaign={openCampaign} onOpenCluster={id => setClusterReviewId(id)} onOpenCapture={() => setCaptureOpen(true)} onOpenInitiative={openInitiative}/>;
+  else if (route === "library")           content = <Library/>;
+
+  const navRoute =
+    route === "trendDetail" ? "explore" :
+    route === "campaignWorkspace" ? "process" :
+    route === "initiativeDetail" ? "initiatives" :
+    route;
+
+  return (
+    <div style={{ display: "flex", height: "100vh", overflow: "hidden" }} data-screen-label={`CIN · ${route}`}>
+      <Sidebar route={navRoute} setRoute={r => goTo(r)} collapsed={sidebarCollapsed} setCollapsed={setSidebarCollapsed} t={t}/>
+      <div style={{ flex: 1, display: "flex", flexDirection: "column", minWidth: 0 }}>
+        <Header t={t} lang={lang} setLang={setLang} onOpenAI={() => setAiOpen(true)} aiPending={data.aiInbox.length} onSearch={setSearch} search={search} onNewTrend={() => setCaptureOpen(true)}/>
+        <main style={{ flex: 1, overflow: "hidden", background: "var(--bg-0)" }}>{content}</main>
+      </div>
+      <AIScout open={aiOpen} onClose={() => setAiOpen(false)} data={data} t={t}/>
+      <CaptureDialog open={captureOpen} onClose={() => setCaptureOpen(false)}/>
+      <ClusterReview open={!!clusterReviewId} onClose={() => setClusterReviewId(null)} clusters={campaignsData.clusters} ideas={campaignsData.ideas} clusterId={clusterReviewId}/>
+      {tweaksOpen && <TweaksPanel tweaks={tweaks} setTweaks={setTweaks} onClose={() => setTweaksOpen(false)}/>}
+    </div>
+  );
+};
+
+export default App;
