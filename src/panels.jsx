@@ -1,7 +1,8 @@
 // AI Scout panel + Tweaks + Projects/Library/Analytics stubs
-import { Fragment, useState } from 'react';
+import { Fragment, useState, useEffect } from 'react';
 import { Icon, BarMeter, Sparkline, StageBadge, DimensionDot } from './ui.jsx';
 import { useLocalStorage } from './useLocalStorage.js';
+import { conceptsApi } from './api.js';
 
 export const AIScout = ({ open, onClose, data, t }) => {
   const [tab, setTab] = useState("inbox");
@@ -238,8 +239,11 @@ const KNOWLEDGE_SECTIONS = {
 
 export const Library = () => {
   const [sec, setSec] = useState("sources");
+  const [concepts, setConcepts] = useState([]);
   const entries = Object.entries(KNOWLEDGE_SECTIONS);
   const active = KNOWLEDGE_SECTIONS[sec];
+
+  useEffect(() => { conceptsApi.list().then(r => setConcepts(r.concepts || [])).catch(() => {}); }, []);
 
   return (
     <div style={{ display: "flex", flexDirection: "column", height: "100%" }}>
@@ -260,7 +264,7 @@ export const Library = () => {
             }}>
               <Icon name={v.icon} size={14}/>
               <span style={{ flex: 1 }}>{v.l}</span>
-              <span className="mono" style={{ fontSize: 10.5, color: "var(--fg-3)" }}>{v.items.length}</span>
+              <span className="mono" style={{ fontSize: 10.5, color: "var(--fg-3)" }}>{k === "exports" ? concepts.filter(c => c.hasArtefacts).length : v.items.length}</span>
             </button>
           ))}
           <div style={{ height: 1, background: "var(--line-1)", margin: "8px 0" }}/>
@@ -271,18 +275,36 @@ export const Library = () => {
         <div className="scroll" style={{ padding: 20, overflow: "auto" }}>
           <div style={{ fontSize: 11, color: "var(--fg-3)", textTransform: "uppercase", letterSpacing: 0.8, marginBottom: 4 }}>{active.l}</div>
           <div style={{ fontSize: 12.5, color: "var(--fg-2)", marginBottom: 14, maxWidth: 560 }}>{active.desc}</div>
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(280px, 1fr))", gap: 10 }}>
-            {active.items.map(it => (
-              <div key={it.t} className="card" style={{ padding: 14 }}>
-                <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 8 }}>
-                  <span className="chip mono" style={{ fontSize: 10 }}>{it.tag}</span>
-                  {sec === "prompts" && <span className="chip ai mono" style={{ fontSize: 10 }}><Icon name="sparkles" size={9}/>prompt</span>}
+          {sec === "exports" ? (
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(280px, 1fr))", gap: 10 }}>
+              {concepts.filter(c => c.hasArtefacts).length === 0 && (
+                <div style={{ gridColumn: "1/-1", padding: 20, color: "var(--fg-3)", fontSize: 12 }}>
+                  Noch keine generierten Artefakte — erstelle eine Initiative und generiere Artefakte.
                 </div>
-                <div style={{ fontSize: 13, color: "var(--fg-0)", fontWeight: 500, marginBottom: 4, fontFamily: sec === "prompts" ? "var(--mono)" : "inherit" }}>{it.t}</div>
-                <div className="mono" style={{ fontSize: 10.5, color: "var(--fg-3)" }}>{it.m}</div>
-              </div>
-            ))}
-          </div>
+              )}
+              {concepts.filter(c => c.hasArtefacts).map(c => (
+                <div key={c.id} className="card" style={{ padding: '8px 12px', marginBottom: 4 }}>
+                  <div style={{ fontSize: 12, fontWeight: 500, color: 'var(--fg-0)' }}>{c.title}</div>
+                  <div style={{ fontSize: 11, color: 'var(--fg-3)' }}>
+                    {new Date(c.updatedAt).toLocaleDateString('de-CH')}
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(280px, 1fr))", gap: 10 }}>
+              {active.items.map(it => (
+                <div key={it.t} className="card" style={{ padding: 14 }}>
+                  <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 8 }}>
+                    <span className="chip mono" style={{ fontSize: 10 }}>{it.tag}</span>
+                    {sec === "prompts" && <span className="chip ai mono" style={{ fontSize: 10 }}><Icon name="sparkles" size={9}/>prompt</span>}
+                  </div>
+                  <div style={{ fontSize: 13, color: "var(--fg-0)", fontWeight: 500, marginBottom: 4, fontFamily: sec === "prompts" ? "var(--mono)" : "inherit" }}>{it.t}</div>
+                  <div className="mono" style={{ fontSize: 10.5, color: "var(--fg-3)" }}>{it.m}</div>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
       </div>
     </div>

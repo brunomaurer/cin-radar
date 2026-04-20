@@ -2,6 +2,33 @@ import { useState, useEffect, useRef } from 'react';
 import { Icon } from './ui.jsx';
 import { conceptsApi, chatApi, generateApi, ARTEFACT_META, ARTEFACT_IDS } from './api.js';
 
+// ========== Download helpers ==========
+
+const downloadArtefact = (body, label) => {
+  const blob = new Blob([body], { type: 'text/markdown;charset=utf-8' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `${label.replace(/\s+/g, '-').toLowerCase()}.md`;
+  a.click();
+  URL.revokeObjectURL(url);
+};
+
+const downloadBundle = (title, artefacts) => {
+  const ids = ['claude', 'prd', 'tech', 'deck', 'prompt', 'email'];
+  const content = ids
+    .filter(id => artefacts?.[id]?.body)
+    .map(id => `# ${id.toUpperCase()}\n\n${artefacts[id].body}`)
+    .join('\n\n---\n\n');
+  const blob = new Blob([content], { type: 'text/markdown;charset=utf-8' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `${title.replace(/\s+/g, '-').toLowerCase()}-bundle.md`;
+  a.click();
+  URL.revokeObjectURL(url);
+};
+
 // ========== List view ==========
 
 export const ConceptList = ({ onOpen, onGoToRate }) => {
@@ -224,6 +251,11 @@ export const ConceptWorkspace = ({ id, trends, onBack }) => {
               </button>
             ))}
           </div>
+          {concept.artefacts && Object.keys(concept.artefacts).length > 0 && (
+            <button className="btn sm" onClick={() => downloadBundle(concept.title, concept.artefacts)} style={{ fontSize: 11 }}>
+              ↓ Alle herunterladen
+            </button>
+          )}
           <span className="mono" style={{ fontSize: 10.5, color: 'var(--fg-3)', minWidth: 80, textAlign: 'right' }}>
             {savedAt ? 'gespeichert ' + formatRelative(savedAt.toISOString()) : ''}
           </span>
@@ -387,6 +419,9 @@ const ArtefactGrid = ({ concept, onOpen, onGenerate, generating }) => {
                 <div style={{ display: 'flex', gap: 4, padding: '8px 10px', borderTop: '1px solid var(--line-1)', background: 'var(--bg-2)' }}>
                   <span className="chip mono" style={{ fontSize: 10 }}>{art.words} Worte</span>
                   <div style={{ flex: 1 }}/>
+                  <button className="btn sm" style={{ fontSize: 11 }} onClick={(e) => { e.stopPropagation(); downloadArtefact(art.body, meta.label); }}>
+                    ↓ Download
+                  </button>
                   <span className="chip mono" style={{ fontSize: 10 }}>editieren</span>
                 </div>
               )}
