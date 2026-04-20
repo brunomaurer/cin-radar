@@ -47,11 +47,13 @@ export const ProcessPipeline = ({ data, campaignsData, campaigns, stage, setStag
           </div>
           <button className="btn ai sm" onClick={onOpenCapture}><Icon name="sparkles" size={13}/> Capture</button>
         </div>
-        <div style={{ display: "grid", gridTemplateColumns: `repeat(${stages.length}, 1fr) 40px`, gap: 4, marginTop: 14 }}>
+        <div style={{ display: "flex", gap: 8, marginTop: 14, flexWrap: "wrap" }}>
           {stages.map((s, i) => (
             <Fragment key={s.k}>
               <button onClick={() => setStage(s.k)} style={{
-                padding: "10px 12px", borderRadius: 8,
+                flex: "1 1 160px",
+                minWidth: 140,
+                padding: "12px 14px", borderRadius: 8,
                 background: stage === s.k ? `${s.c}22` : "var(--bg-1)",
                 border: `1px solid ${stage === s.k ? s.c + '80' : 'var(--line-1)'}`,
                 textAlign: "left",
@@ -60,10 +62,10 @@ export const ProcessPipeline = ({ data, campaignsData, campaigns, stage, setStag
                   <span style={{ width: 8, height: 8, borderRadius: 999, background: s.c }}/>
                   <span style={{ fontSize: 10.5, color: s.c, textTransform: "uppercase", letterSpacing: 0.8, fontWeight: 600 }}>0{i+1} {s.l}</span>
                 </div>
-                <div className="mono" style={{ fontSize: 18, color: "var(--fg-0)", fontWeight: 600 }}>{s.n.toLocaleString()}</div>
-                <div style={{ fontSize: 10.5, color: "var(--fg-3)", marginTop: 2 }}>{s.sub}</div>
+                <div className="mono" style={{ fontSize: 22, color: "var(--fg-0)", fontWeight: 600 }}>{typeof s.n === 'number' ? s.n.toLocaleString() : s.n}</div>
+                <div style={{ fontSize: 11, color: "var(--fg-3)", marginTop: 2 }}>{s.sub}</div>
               </button>
-              {i < stages.length - 1 && <div style={{ display: "grid", placeItems: "center", color: "var(--fg-4)" }}><Icon name="chevronRight" size={16}/></div>}
+              {i < stages.length - 1 && <div style={{ display: "flex", alignItems: "center", color: "var(--fg-4)", flexShrink: 0 }}><Icon name="chevronRight" size={14}/></div>}
             </Fragment>
           ))}
         </div>
