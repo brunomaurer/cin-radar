@@ -67,6 +67,13 @@ export const TrendDetail = ({ t, data, trendId, onBack, onUpdate, onOpenTrend })
           <div style={{ display: "flex", gap: 6 }}>
             <button className="btn sm"><Icon name="star" size={13}/> Watch</button>
             <button className="btn sm"><Icon name="link" size={13}/> Share</button>
+            <button
+              className={`btn sm${trend.subscribed ? ' ai' : ''}`}
+              onClick={() => onUpdate(trend.id, { subscribed: !trend.subscribed })}
+              style={{ fontSize: 11 }}
+            >
+              {trend.subscribed ? '✓ Subscribed' : '☆ Subscribe'}
+            </button>
             <button className="btn primary sm"><Icon name="plus" size={13}/> Add to project</button>
           </div>
         </div>

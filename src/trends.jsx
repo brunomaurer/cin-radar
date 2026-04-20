@@ -41,11 +41,12 @@ const EMPTY = {
 
 export const NewTrendDialog = ({ open, onClose, onCreated, dimensions, horizons, stages }) => {
   const [form, setForm] = useState(EMPTY);
+  const [subscribed, setSubscribed] = useState(false);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState(null);
 
   useEffect(() => {
-    if (open) { setForm(EMPTY); setError(null); setSaving(false); }
+    if (open) { setForm(EMPTY); setSubscribed(false); setError(null); setSaving(false); }
   }, [open]);
 
   if (!open) return null;
@@ -56,7 +57,7 @@ export const NewTrendDialog = ({ open, onClose, onCreated, dimensions, horizons,
     if (!form.title.trim()) { setError('Titel ist erforderlich'); return; }
     setSaving(true); setError(null);
     try {
-      const r = await trendsApi.create(form);
+      const r = await trendsApi.create({ ...form, subscribed });
       onCreated?.(r.trend);
       onClose();
     } catch (e) {
@@ -147,8 +148,12 @@ export const NewTrendDialog = ({ open, onClose, onCreated, dimensions, horizons,
           </div>
         </div>
 
-        <div style={{ padding: '12px 18px', borderTop: '1px solid var(--line-1)', display: 'flex', gap: 8, flexShrink: 0 }}>
+        <div style={{ padding: '12px 18px', borderTop: '1px solid var(--line-1)', display: 'flex', gap: 8, flexShrink: 0, alignItems: 'center' }}>
           <button className="btn ghost" onClick={onClose} disabled={saving}>Abbrechen</button>
+          <label style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 8, fontSize: 12.5, color: 'var(--fg-1)', cursor: 'pointer' }}>
+            <input type="checkbox" checked={subscribed} onChange={e => setSubscribed(e.target.checked)} />
+            Signal-Abonnierung aktivieren (AI Scout sammelt automatisch Signale)
+          </label>
           <div style={{ flex: 1 }}/>
           <button className="btn primary" onClick={save} disabled={saving}>
             {saving ? 'Speichere…' : <><Icon name="check" size={13}/> Speichern</>}
