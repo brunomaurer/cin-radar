@@ -2,6 +2,21 @@
 import { useState, useMemo } from 'react';
 import { Icon, BarMeter, Sparkline, StageBadge, DimensionDot } from './ui.jsx';
 
+const processStages = [
+  { k: 'all', l: 'All', c: 'var(--fg-2)' },
+  { k: 'scout', l: 'Scout', c: '#34D399' },
+  { k: 'cluster', l: 'Cluster', c: '#A78BFA' },
+  { k: 'rate', l: 'Rate', c: '#F59E0B' },
+  { k: 'initiative', l: 'Initiative', c: '#60A5FA' },
+];
+
+const processStageMap = {
+  scout: ['Signal'],
+  cluster: ['Emerging'],
+  rate: ['Trend', 'Mainstream'],
+  initiative: ['Mainstream', 'Fading'],
+};
+
 export const Explorer = ({ t, data, search, onOpenTrend }) => {
   const [dim, setDim] = useState("all");
   const [horizon, setHorizon] = useState("all");
@@ -10,6 +25,7 @@ export const Explorer = ({ t, data, search, onOpenTrend }) => {
   const [sort, setSort] = useState({ key: "impact", dir: "desc" });
   const [view, setView] = useState("table");
   const [selected, setSelected] = useState(new Set());
+  const [processFilter, setProcessFilter] = useState('all');
 
   const rows = useMemo(() => {
     let r = data.trends.slice();
@@ -21,12 +37,16 @@ export const Explorer = ({ t, data, search, onOpenTrend }) => {
     if (horizon !== "all") r = r.filter(t => t.horizon === horizon);
     if (stage !== "all") r = r.filter(t => t.stage === stage);
     if (owner !== "all") r = r.filter(t => t.owner === owner);
+    if (processFilter !== 'all') {
+      const allowed = processStageMap[processFilter] || [];
+      r = r.filter(tr => allowed.includes(tr.stage));
+    }
     r.sort((a, b) => {
       const v = typeof a[sort.key] === "string" ? a[sort.key].localeCompare(b[sort.key]) : a[sort.key] - b[sort.key];
       return sort.dir === "asc" ? v : -v;
     });
     return r;
-  }, [data, search, dim, horizon, stage, owner, sort]);
+  }, [data, search, dim, horizon, stage, owner, sort, processFilter]);
 
   const clear = () => { setDim("all"); setHorizon("all"); setStage("all"); setOwner("all"); };
 
@@ -48,6 +68,24 @@ export const Explorer = ({ t, data, search, onOpenTrend }) => {
 
   return (
     <div style={{ display: "flex", flexDirection: "column", height: "100%" }}>
+      <div style={{ display: 'flex', gap: 4, marginBottom: 12, padding: '0 24px' }}>
+        {processStages.map(s => (
+          <button
+            key={s.k}
+            className="btn sm"
+            style={{
+              background: processFilter === s.k ? s.c : 'transparent',
+              color: processFilter === s.k ? '#fff' : 'var(--fg-2)',
+              border: processFilter === s.k ? 'none' : '1px solid var(--line-2)',
+              fontSize: 12,
+              fontWeight: processFilter === s.k ? 600 : 400,
+            }}
+            onClick={() => setProcessFilter(s.k)}
+          >
+            {s.l}
+          </button>
+        ))}
+      </div>
       <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "12px 16px", borderBottom: "1px solid var(--line-1)", flexWrap: "wrap" }}>
         <div style={{ display: "flex", alignItems: "center", gap: 6, color: "var(--fg-2)", fontSize: 12, marginRight: 4 }}>
           <Icon name="filter" size={13}/> <span>{t("filters")}</span>
