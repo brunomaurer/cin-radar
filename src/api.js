@@ -44,6 +44,14 @@ export const campaignsApi = {
   remove: (id) => request('/api/campaigns?id=' + encodeURIComponent(id), { method: 'DELETE' }),
 };
 
+export const clustersApi = {
+  list: () => request('/api/clusters'),
+  create: (body) => request('/api/clusters', { method: 'POST', body: JSON.stringify(body) }),
+  get: (id) => request('/api/clusters?id=' + encodeURIComponent(id)),
+  update: (id, patch) => request('/api/clusters?id=' + encodeURIComponent(id), { method: 'PUT', body: JSON.stringify(patch) }),
+  remove: (id) => request('/api/clusters?id=' + encodeURIComponent(id), { method: 'DELETE' }),
+};
+
 export const relationsApi = {
   rank: ({ trend, candidates, force }) =>
     request('/api/relations', { method: 'POST', body: JSON.stringify({ trend, candidates, force }) }),
