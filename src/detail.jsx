@@ -8,7 +8,6 @@ export const TrendDetail = ({ t, data, trendId, onBack, onUpdate, onOpenTrend })
   const trend = data.trends.find(x => x.id === trendId) || data.trends[0];
   const [tab, setTab] = useState("overview");
   const signals = data.signals.filter(s => s.trendId === trend.id);
-  const projects = data.projects.filter(p => p.trends.includes(trend.id));
 
   // AI-ranked related trends
   const [relInfo, setRelInfo] = useState({ loading: true, error: null, items: [] });
@@ -110,7 +109,7 @@ export const TrendDetail = ({ t, data, trendId, onBack, onUpdate, onOpenTrend })
       </div>
 
       <div className="scroll" style={{ flex: 1, overflow: "auto", padding: 20 }}>
-        {tab === "overview" && <OverviewTab trend={trend} t={t} signals={signals} related={related} projects={projects}/>}
+        {tab === "overview" && <OverviewTab trend={trend} t={t} signals={signals} related={related}/>}
         {tab === "evidence" && <EvidenceTab signals={signals}/>}
         {tab === "implications" && <ImplicationsTab/>}
         {tab === "related" && <RelatedTab related={related} loading={relInfo.loading} onOpenTrend={onOpenTrend}/>}
@@ -120,7 +119,7 @@ export const TrendDetail = ({ t, data, trendId, onBack, onUpdate, onOpenTrend })
   );
 };
 
-const OverviewTab = ({ trend, t, signals, related, projects }) => (
+const OverviewTab = ({ trend, t, signals, related }) => (
   <div style={{ display: "grid", gridTemplateColumns: "1fr 320px", gap: 16 }}>
     <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
       <div className="card" style={{ padding: 16, background: "linear-gradient(180deg, rgba(167,139,250,0.07), transparent 80%)", borderColor: "rgba(167,139,250,0.25)" }}>
@@ -193,21 +192,6 @@ const OverviewTab = ({ trend, t, signals, related, projects }) => (
         <Field label={t("horizon")} value={<span className="mono">{trend.horizon}</span>}/>
         <Field label={t("stage")} value={<StageBadge stage={trend.stage}/>}/>
         <Field label={t("updated")} value={<span className="mono" style={{ color: "var(--fg-2)" }}>{trend.updated}</span>} last/>
-      </div>
-
-      <div className="card" style={{ padding: 16 }}>
-        <div style={{ fontSize: 11, color: "var(--fg-3)", textTransform: "uppercase", letterSpacing: 0.8, marginBottom: 12 }}>{t("projects")}</div>
-        {projects.length === 0 && <div style={{ color: "var(--fg-3)", fontSize: 12 }}>No linked projects.</div>}
-        {projects.map(p => (
-          <div key={p.id} style={{ padding: "10px 0", borderBottom: "1px solid var(--line-1)" }}>
-            <div style={{ fontSize: 12.5, color: "var(--fg-0)" }}>{p.title}</div>
-            <div style={{ display: "flex", alignItems: "center", gap: 8, marginTop: 6 }}>
-              <span className="chip">{p.stage}</span>
-              <div style={{ flex: 1 }}><BarMeter value={p.progress} color="var(--accent)"/></div>
-              <span className="mono" style={{ fontSize: 11, color: "var(--fg-2)" }}>{p.progress}%</span>
-            </div>
-          </div>
-        ))}
       </div>
 
       <div className="card" style={{ padding: 16 }}>

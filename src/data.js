@@ -49,13 +49,6 @@ export const CIN_DATA = (function () {
     { id: "n6", title: "EU Commission draft: mandatory eco-score on consumer electronics by 2028", source: "EUR-Lex", matchedTrend: "Circular Electronics Mandates", confidence: 0.93, date: "8 h ago", lang: "EN" },
   ];
 
-  const projects = [
-    { id: "p1", title: "Mycelium packaging pilot with Migros", stage: "Prototyping", trends: ["40cg"], lead: "L. Meier", progress: 62 },
-    { id: "p2", title: "Agentic procurement copilot — internal", stage: "Ideation", trends: ["44"], lead: "A. Koch", progress: 18 },
-    { id: "p3", title: "Zurich Sponge Block feasibility", stage: "Research", trends: ["41"], lead: "P. Huber", progress: 34 },
-    { id: "p4", title: "Content provenance for corporate comms", stage: "Scaling", trends: ["37"], lead: "N. Fischer", progress: 81 },
-  ];
-
   const funnelStages = [
     { key: "signals",    label: "Signals",     count: 1840 },
     { key: "reviewed",   label: "Reviewed",    count: 612 },
@@ -67,5 +60,5 @@ export const CIN_DATA = (function () {
 
   const owners = [...new Set(trends.map(t => t.owner))];
 
-  return { dimensions, horizons, stages, trends, signals, aiInbox, projects, funnelStages, owners };
+  return { dimensions, horizons, stages, trends, signals, aiInbox, funnelStages, owners };
 })();
