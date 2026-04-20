@@ -1,9 +1,47 @@
 import Anthropic from '@anthropic-ai/sdk';
-import { kv } from '@vercel/kv';
+import Redis from 'ioredis';
 
 export const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
 export const MODEL = 'claude-sonnet-4-6';
-export { kv };
+
+const redisUrl = process.env.REDIS_URL || process.env.KV_URL;
+let _redis = null;
+function getRedis() {
+  if (!_redis && redisUrl) {
+    _redis = new Redis(redisUrl, { maxRetriesPerRequest: 2, enableReadyCheck: false });
+  }
+  return _redis;
+}
+
+// Minimal KV-compatible wrapper — values are JSON-serialised automatically.
+export const kv = {
+  async get(key) {
+    const r = getRedis(); if (!r) throw new Error('Redis not configured');
+    const s = await r.get(key);
+    if (s == null) return null;
+    try { return JSON.parse(s); } catch { return s; }
+  },
+  async set(key, value) {
+    const r = getRedis(); if (!r) throw new Error('Redis not configured');
+    return r.set(key, JSON.stringify(value));
+  },
+  async del(key) {
+    const r = getRedis(); if (!r) throw new Error('Redis not configured');
+    return r.del(key);
+  },
+  async lrange(key, start, stop) {
+    const r = getRedis(); if (!r) throw new Error('Redis not configured');
+    return r.lrange(key, start, stop);
+  },
+  async lpush(key, ...values) {
+    const r = getRedis(); if (!r) throw new Error('Redis not configured');
+    return r.lpush(key, ...values);
+  },
+  async lrem(key, count, value) {
+    const r = getRedis(); if (!r) throw new Error('Redis not configured');
+    return r.lrem(key, count, value);
+  },
+};
 
 export async function readBody(req) {
   if (req.body && typeof req.body === 'object') return req.body;
@@ -26,7 +64,6 @@ export function fail(res, status, message, extra) {
 export function envCheck() {
   const missing = [];
   if (!process.env.ANTHROPIC_API_KEY) missing.push('ANTHROPIC_API_KEY');
-  if (!process.env.KV_REST_API_URL) missing.push('KV_REST_API_URL');
-  if (!process.env.KV_REST_API_TOKEN) missing.push('KV_REST_API_TOKEN');
+  if (!process.env.REDIS_URL && !process.env.KV_URL) missing.push('REDIS_URL');
   return missing;
 }

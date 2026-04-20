@@ -64,8 +64,8 @@ export const ConceptList = ({ onOpen, onCreate }) => {
           <div style={{ fontSize: 12, color: '#FFB9C5', fontWeight: 600, marginBottom: 4 }}>Backend nicht erreichbar</div>
           <div style={{ fontSize: 12, color: 'var(--fg-2)', lineHeight: 1.5 }}>{error}</div>
           <div style={{ fontSize: 11.5, color: 'var(--fg-3)', marginTop: 8, lineHeight: 1.5 }}>
-            Prüfe in Vercel → Settings → Environment Variables, dass <span className="mono">ANTHROPIC_API_KEY</span> gesetzt ist
-            und unter Storage eine KV-Datenbank verbunden ist.
+            Prüfe in Vercel → Settings → Environment Variables, dass <span className="mono">ANTHROPIC_API_KEY</span> und
+            <span className="mono"> REDIS_URL</span> gesetzt sind.
           </div>
         </div>
       )}

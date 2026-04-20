@@ -5,7 +5,7 @@ const ITEM_KEY = (id) => `concept:${id}`;
 
 export default async function handler(req, res) {
   const missing = envCheck();
-  if (missing.some(k => k.startsWith('KV_'))) return fail(res, 500, 'Vercel KV not configured');
+  if (missing.includes('REDIS_URL')) return fail(res, 500, 'Redis not configured');
 
   const { id } = req.query;
   if (!id) return fail(res, 400, 'id required');
