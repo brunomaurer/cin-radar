@@ -14,13 +14,14 @@ export function parseRoute(pathname) {
     case 'initiative':  return arg ? { route: 'initiativeDetail', initiativeId: arg } : { route: 'initiatives' };
     case 'analytics':   return { route: 'analytics' };
     case 'library':     return { route: 'library' };
+    case 'cluster':     return arg ? { route: 'clusterDetail', clusterId: arg } : { route: 'process', processStage: 'cluster' };
     case 'signals':     return { route: 'signals' };
     case 'dashboard':   return { route: 'dashboard' };
     default:            return { route: 'dashboard' };
   }
 }
 
-export function buildPath({ route, trendId, campaignId, initiativeId, processStage }) {
+export function buildPath({ route, trendId, campaignId, initiativeId, processStage, clusterId }) {
   switch (route) {
     case 'dashboard':         return '/';
     case 'explore':           return '/explore';
@@ -31,6 +32,7 @@ export function buildPath({ route, trendId, campaignId, initiativeId, processSta
     case 'initiatives':       return '/initiatives';
     case 'initiativeDetail':  return '/initiative/' + initiativeId;
     case 'analytics':         return '/analytics';
+    case 'clusterDetail':     return '/cluster/' + clusterId;
     case 'library':           return '/library';
     case 'signals':           return '/signals';
     default:                  return '/';

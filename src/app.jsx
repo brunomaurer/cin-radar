@@ -6,7 +6,7 @@ import { Sidebar, Header } from './shell.jsx';
 import { Dashboard } from './dashboard.jsx';
 import { Explorer } from './explorer.jsx';
 import { TrendDetail } from './detail.jsx';
-import { ProcessPipeline, AnalyticsHub } from './process.jsx';
+import { ProcessPipeline, AnalyticsHub, ClusterDetail } from './process.jsx';
 import { CampaignList, CampaignWorkspace, CaptureDialog, ClusterReview } from './campaigns.jsx';
 import { AIScout, Library, TweaksPanel } from './panels.jsx';
 import { ConceptList, ConceptWorkspace } from './initiatives.jsx';
@@ -19,7 +19,7 @@ const App = () => {
   const campaignsData = CIN_CAMPAIGNS;
   const { pathname, navigate } = useLocation();
   const parsed = parseRoute(pathname);
-  const { route, trendId, campaignId, initiativeId, processStage } = parsed;
+  const { route, trendId, campaignId, initiativeId, processStage, clusterId } = parsed;
 
   const [customTrends, setCustomTrends] = useState([]);
   useEffect(() => {
@@ -126,6 +126,7 @@ const App = () => {
   else if (route === "campaigns")         content = <CampaignList data={data} onOpen={openCampaign}/>;
   else if (route === "campaignWorkspace") content = <CampaignWorkspace {...campaignsData} campaignId={campaignId} onBack={() => navigate(buildPath({ route: 'campaigns' }))} onOpenCapture={() => setCaptureOpen(true)} onOpenCluster={id => setClusterReviewId(id)}/>;
   else if (route === "initiativeDetail")  content = <ConceptWorkspace id={initiativeId} trends={data.trends} onBack={() => navigate(buildPath({ route: 'initiatives' }))}/>;
+  else if (route === "clusterDetail")     content = <ClusterDetail clusterId={clusterId} onBack={() => navigate(buildPath({ route: 'process', processStage: 'cluster' }))} onReviewAsTrend={prefill => { setTrendPrefill(prefill); setNewTrendOpen(true); }}/>;
   else if (route === "analytics")         content = <AnalyticsHub t={t} data={data} onOpenTrend={openTrend}/>;
   else if (route === "initiatives")       content = <ConceptList onOpen={(id) => navigate(buildPath({ route: 'initiativeDetail', initiativeId: id }))} onGoToRate={() => navigate(buildPath({ route: 'process', processStage: 'rate' }))}/>;
   else if (route === "library")           content = <Library/>;

@@ -3,7 +3,7 @@ import { Fragment, useState, useEffect } from 'react';
 import { Icon, BarMeter, DimensionDot } from './ui.jsx';
 import { Radar, Matrix, Timeline, Funnel } from './viz.jsx';
 import { useLocalStorage } from './useLocalStorage.js';
-import { conceptsApi, clustersApi, clusterToTrendApi } from './api.js';
+import { conceptsApi, clustersApi, clusterToTrendApi, signalsApi } from './api.js';
 
 export const ProcessPipeline = ({ data, campaignsData, campaigns, stage, setStage, onOpenCampaign, onOpenCluster, onOpenCapture, onOpenInitiative, onLaunchInitiative, onReviewAsTrend }) => {
   const [initiatives, setInitiatives] = useState(null);
@@ -506,6 +506,76 @@ const PipelineBoard = ({ data, campaignsData, stages, initiatives, onOpenInitiat
             </div>
           );
         })}
+      </div>
+    </div>
+  );
+};
+
+export const ClusterDetail = ({ clusterId, onBack, onReviewAsTrend }) => {
+  const [cluster, setCluster] = useState(null);
+  const [linkedSignals, setLinkedSignals] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    setLoading(true);
+    Promise.all([
+      clustersApi.get(clusterId).catch(() => null),
+      signalsApi.list().catch(() => []),
+    ]).then(([cl, sigs]) => {
+      setCluster(cl);
+      const allSigs = Array.isArray(sigs) ? sigs : [];
+      setLinkedSignals(allSigs.filter(s => (s.clusterIds || []).includes(clusterId) || s.clusterId === clusterId));
+    }).finally(() => setLoading(false));
+  }, [clusterId]);
+
+  if (loading) return <div style={{ padding: 40, textAlign: 'center', color: 'var(--fg-3)', fontSize: 13 }}>Loading cluster…</div>;
+  if (!cluster) return <div style={{ padding: 40, textAlign: 'center', color: 'var(--fg-3)', fontSize: 13 }}>Cluster not found.</div>;
+
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
+      <div style={{ padding: '14px 20px', borderBottom: '1px solid var(--line-1)', display: 'flex', alignItems: 'center', gap: 10 }}>
+        <button className="btn ghost sm" onClick={onBack}><Icon name="arrowLeft" size={13} /> Back</button>
+        <h1 style={{ margin: 0, fontSize: 18, fontWeight: 600, color: 'var(--fg-0)' }}>{cluster.label || 'Cluster'}</h1>
+        <div style={{ flex: 1 }} />
+        {onReviewAsTrend && (
+          <button className="btn ai sm" onClick={() => onReviewAsTrend(cluster)}>
+            <Icon name="sparkles" size={12} /> Review as Trend
+          </button>
+        )}
+      </div>
+      <div className="scroll" style={{ flex: 1, overflow: 'auto', padding: 20 }}>
+        <div className="card" style={{ padding: 20, marginBottom: 16 }}>
+          <div style={{ display: 'grid', gridTemplateColumns: '120px 1fr', gap: '10px 16px', fontSize: 13 }}>
+            <span style={{ color: 'var(--fg-3)' }}>Label</span>
+            <span style={{ color: 'var(--fg-0)', fontWeight: 500 }}>{cluster.label}</span>
+            <span style={{ color: 'var(--fg-3)' }}>Description</span>
+            <span style={{ color: 'var(--fg-1)' }}>{cluster.description || '—'}</span>
+            <span style={{ color: 'var(--fg-3)' }}>Origin</span>
+            <span className="chip mono" style={{ fontSize: 10.5, width: 'fit-content' }}>{cluster.origin || 'unknown'}</span>
+            <span style={{ color: 'var(--fg-3)' }}>Confidence</span>
+            <span className="mono" style={{ color: cluster.confidence > 0.85 ? '#34D399' : '#F59E0B' }}>
+              {cluster.confidence != null ? (cluster.confidence * 100).toFixed(0) + '%' : '—'}
+            </span>
+          </div>
+        </div>
+
+        <div style={{ fontSize: 11, color: 'var(--fg-3)', textTransform: 'uppercase', letterSpacing: 0.8, marginBottom: 10 }}>
+          Linked Signals ({linkedSignals.length})
+        </div>
+        {linkedSignals.length === 0 && (
+          <div style={{ color: 'var(--fg-3)', fontSize: 12, padding: '12px 0' }}>No signals linked to this cluster yet.</div>
+        )}
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: 10 }}>
+          {linkedSignals.map(s => (
+            <div key={s.id} className="card" style={{ padding: 12 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 4 }}>
+                <span style={{ display: 'inline-block', width: 8, height: 8, borderRadius: '50%', background: { manual: '#3B82F6', url: '#10B981', pdf: '#F59E0B', 'ai-scout': '#A78BFA' }[s.channel] || 'var(--fg-3)' }} />
+                <span style={{ fontSize: 12.5, color: 'var(--fg-0)', fontWeight: 500, flex: 1 }}>{s.title}</span>
+              </div>
+              {s.source && <div className="mono" style={{ fontSize: 10.5, color: 'var(--fg-3)' }}>{s.source}</div>}
+            </div>
+          ))}
+        </div>
       </div>
     </div>
   );
