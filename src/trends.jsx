@@ -90,7 +90,7 @@ export const NewTrendDialog = ({ open, onClose, onCreated, prefill, dimensions, 
 
   return (
     <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.6)', zIndex: 60, display: 'grid', placeItems: 'center', padding: 24 }} onClick={onClose}>
-      <div onClick={e => e.stopPropagation()} className="card" style={{ width: 720, maxWidth: '100%', maxHeight: '90vh', display: 'flex', flexDirection: 'column', background: 'var(--bg-1)', overflow: 'hidden', boxShadow: 'var(--shadow-pop)' }}>
+      <div onClick={e => e.stopPropagation()} className="card" style={{ width: 860, maxWidth: '100%', maxHeight: '90vh', display: 'flex', flexDirection: 'column', background: 'var(--bg-1)', overflow: 'hidden', boxShadow: 'var(--shadow-pop)' }}>
         <div style={{ padding: '14px 18px', borderBottom: '1px solid var(--line-1)', display: 'flex', alignItems: 'center', gap: 10, flexShrink: 0 }}>
           <div style={{ width: 28, height: 28, borderRadius: 7, background: 'linear-gradient(135deg,#3B82F6,#A78BFA)', display: 'grid', placeItems: 'center' }}>
             <Icon name="plus" size={14}/>
@@ -109,92 +109,114 @@ export const NewTrendDialog = ({ open, onClose, onCreated, prefill, dimensions, 
             </div>
           )}
 
-          <div style={{ marginBottom: 14 }}>
-            <Label>Titel*</Label>
-            <input className="input" style={{ width: '100%', height: 36 }} placeholder="z.B. Autonomous Logistics in DACH"
-              value={form.title} onChange={e => set('title', e.target.value)} autoFocus/>
-          </div>
-
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 10, marginBottom: 14 }}>
-            <div>
-              <Label>Dimension</Label>
-              <Select value={form.dim} onChange={v => set('dim', v)} options={dimensions.map(d => [d, d])}/>
-            </div>
-            <div>
-              <Label>Horizont</Label>
-              <Select value={form.horizon} onChange={v => set('horizon', v)} options={horizons.map(h => [h, h])}/>
-            </div>
-            <div>
-              <Label>Stage</Label>
-              <Select value={form.stage} onChange={v => set('stage', v)} options={stages.map(s => [s, s])}/>
-            </div>
-          </div>
-
-          <div style={{ marginBottom: 14 }}>
-            <Label>Owner</Label>
-            <input className="input" style={{ width: '100%', height: 36 }}
-              value={form.owner} onChange={e => set('owner', e.target.value)}/>
-          </div>
-
-          <div style={{ marginBottom: 14 }}>
-            <Label>Rating</Label>
-            <div style={{ display: 'grid', gridTemplateColumns: 'auto 1fr 40px', rowGap: 10, columnGap: 12, alignItems: 'center' }}>
-              <span style={{ fontSize: 11.5, color: 'var(--fg-2)' }}>Impact</span>
-              <EditableBar value={form.impact} color="var(--accent)" onChange={v => set('impact', v)}/>
-              <span className="mono" style={{ fontSize: 11.5, color: 'var(--fg-1)', textAlign: 'right' }}>{form.impact}</span>
-
-              <span style={{ fontSize: 11.5, color: 'var(--fg-2)' }}>Novelty</span>
-              <EditableBar value={form.novelty} color="var(--ai)" onChange={v => set('novelty', v)}/>
-              <span className="mono" style={{ fontSize: 11.5, color: 'var(--fg-1)', textAlign: 'right' }}>{form.novelty}</span>
-
-              <span style={{ fontSize: 11.5, color: 'var(--fg-2)' }}>Maturity</span>
-              <EditableBar value={form.maturity} color="#F59E0B" onChange={v => set('maturity', v)}/>
-              <span className="mono" style={{ fontSize: 11.5, color: 'var(--fg-1)', textAlign: 'right' }}>{form.maturity}</span>
-            </div>
-          </div>
-
-          <div style={{ marginBottom: 14 }}>
-            <Label>Tags (Komma-getrennt)</Label>
-            <input className="input" style={{ width: '100%', height: 36 }} placeholder="z.B. AI, automation, b2b"
-              value={form.tags} onChange={e => set('tags', e.target.value)}/>
-          </div>
-
-          <div style={{ marginBottom: 14 }}>
-            <Label>Zusammenfassung</Label>
-            <textarea
-              value={form.summary} onChange={e => set('summary', e.target.value)}
-              rows={4}
-              style={{ width: '100%', padding: '10px 12px', background: 'var(--bg-2)', border: '1px solid var(--line-2)', borderRadius: 8, color: 'var(--fg-0)', fontSize: 13, fontFamily: 'inherit', resize: 'vertical', outline: 'none' }}
-              placeholder="1-3 Sätze, was genau dieser Trend ist und warum er wichtig wird."
-            />
-          </div>
-
-          <div style={{ marginBottom: 14 }}>
-            <div style={{ marginTop: 8 }}>
-              <label style={{ fontSize: 11, color: 'var(--fg-3)', display: 'block', marginBottom: 4 }}>Bild</label>
-              {imageUrl && <img src={imageUrl} alt="" style={{ width: 150, height: 200, objectFit: 'cover', borderRadius: 6, marginBottom: 8 }} />}
-              <div style={{ display: 'flex', gap: 8 }}>
-                <input className="input" placeholder="Bild-URL" value={imageUrl} onChange={e => setImageUrl(e.target.value)} style={{ flex: 1 }} />
-                <button className="btn ai sm" type="button" disabled={imgLoading} onClick={async () => {
-                  setImgLoading(true);
-                  try {
-                    const r = await fetch('/api/generate-image', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ title: form.title, dim: form.dim, summary: form.summary }) });
-                    const data = await r.json();
-                    if (data.url) setImageUrl(data.url);
-                  } catch {} finally { setImgLoading(false); }
-                }}>
-                  {imgLoading ? '…' : 'Generate'}
-                </button>
+          <div style={{ display: 'flex', gap: 20 }}>
+            {/* Left: form fields */}
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <div style={{ marginBottom: 14 }}>
+                <Label>Titel*</Label>
+                <input className="input" style={{ width: '100%', height: 36 }} placeholder="z.B. Autonomous Logistics in DACH"
+                  value={form.title} onChange={e => set('title', e.target.value)} autoFocus/>
               </div>
+
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginBottom: 14 }}>
+                <div>
+                  <Label>Dimension</Label>
+                  <Select value={form.dim} onChange={v => set('dim', v)} options={dimensions.map(d => [d, d])}/>
+                </div>
+                <div>
+                  <Label>Horizont</Label>
+                  <Select value={form.horizon} onChange={v => set('horizon', v)} options={horizons.map(h => [h, h])}/>
+                </div>
+              </div>
+
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginBottom: 14 }}>
+                <div>
+                  <Label>Stage</Label>
+                  <Select value={form.stage} onChange={v => set('stage', v)} options={stages.map(s => [s, s])}/>
+                </div>
+                <div>
+                  <Label>Owner</Label>
+                  <input className="input" style={{ width: '100%', height: 36 }}
+                    value={form.owner} onChange={e => set('owner', e.target.value)}/>
+                </div>
+              </div>
+
+              <div style={{ marginBottom: 14 }}>
+                <Label>Rating</Label>
+                <div style={{ display: 'grid', gridTemplateColumns: 'auto 1fr 40px', rowGap: 10, columnGap: 12, alignItems: 'center' }}>
+                  <span style={{ fontSize: 11.5, color: 'var(--fg-2)' }}>Impact</span>
+                  <EditableBar value={form.impact} color="var(--accent)" onChange={v => set('impact', v)}/>
+                  <span className="mono" style={{ fontSize: 11.5, color: 'var(--fg-1)', textAlign: 'right' }}>{form.impact}</span>
+
+                  <span style={{ fontSize: 11.5, color: 'var(--fg-2)' }}>Novelty</span>
+                  <EditableBar value={form.novelty} color="var(--ai)" onChange={v => set('novelty', v)}/>
+                  <span className="mono" style={{ fontSize: 11.5, color: 'var(--fg-1)', textAlign: 'right' }}>{form.novelty}</span>
+
+                  <span style={{ fontSize: 11.5, color: 'var(--fg-2)' }}>Maturity</span>
+                  <EditableBar value={form.maturity} color="#F59E0B" onChange={v => set('maturity', v)}/>
+                  <span className="mono" style={{ fontSize: 11.5, color: 'var(--fg-1)', textAlign: 'right' }}>{form.maturity}</span>
+                </div>
+              </div>
+
+              <div style={{ marginBottom: 14 }}>
+                <Label>Tags (Komma-getrennt)</Label>
+                <input className="input" style={{ width: '100%', height: 36 }} placeholder="z.B. AI, automation, b2b"
+                  value={form.tags} onChange={e => set('tags', e.target.value)}/>
+              </div>
+
+              <div style={{ marginBottom: 14 }}>
+                <Label>Zusammenfassung</Label>
+                <textarea
+                  value={form.summary} onChange={e => set('summary', e.target.value)}
+                  rows={3}
+                  style={{ width: '100%', padding: '10px 12px', background: 'var(--bg-2)', border: '1px solid var(--line-2)', borderRadius: 8, color: 'var(--fg-0)', fontSize: 13, fontFamily: 'inherit', resize: 'vertical', outline: 'none' }}
+                  placeholder="1-3 Sätze, was genau dieser Trend ist und warum er wichtig wird."
+                />
+              </div>
+            </div>
+
+            {/* Right: image */}
+            <div style={{ width: 220, flexShrink: 0, display: 'flex', flexDirection: 'column', gap: 8 }}>
+              <Label>Bild</Label>
+              {imageUrl ? (
+                <div style={{ position: 'relative' }}>
+                  <img src={imageUrl} alt="" style={{ width: 220, height: 293, objectFit: 'cover', borderRadius: 8 }} />
+                  <button className="btn sm ghost" type="button" disabled={imgLoading} onClick={async () => {
+                    setImgLoading(true);
+                    try {
+                      const r = await fetch('/api/generate-image', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ title: form.title, dim: form.dim, summary: form.summary }) });
+                      const data = await r.json();
+                      if (data.url) setImageUrl(data.url);
+                    } catch {} finally { setImgLoading(false); }
+                  }} style={{ position: 'absolute', bottom: 8, right: 8, fontSize: 10, background: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(4px)' }}>
+                    {imgLoading ? '…' : '↻ Neu'}
+                  </button>
+                </div>
+              ) : (
+                <div style={{ width: 220, height: 293, background: 'var(--bg-2)', borderRadius: 8, border: '1px dashed var(--line-2)', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 10 }}>
+                  <div style={{ color: 'var(--fg-4)', fontSize: 36 }}>◻</div>
+                  <button className="btn ai sm" type="button" disabled={imgLoading} onClick={async () => {
+                    setImgLoading(true);
+                    try {
+                      const r = await fetch('/api/generate-image', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ title: form.title, dim: form.dim, summary: form.summary }) });
+                      const data = await r.json();
+                      if (data.url) setImageUrl(data.url);
+                    } catch {} finally { setImgLoading(false); }
+                  }} style={{ fontSize: 11 }}>
+                    {imgLoading ? 'Generiere…' : 'Bild generieren'}
+                  </button>
+                </div>
+              )}
+              <input className="input" placeholder="Bild-URL" value={imageUrl} onChange={e => setImageUrl(e.target.value)} style={{ width: '100%', fontSize: 11 }} />
             </div>
           </div>
         </div>
 
-        <div style={{ padding: '12px 18px', borderTop: '1px solid var(--line-1)', display: 'flex', gap: 8, flexShrink: 0, alignItems: 'center' }}>
+        <div style={{ padding: '12px 18px', borderTop: '1px solid var(--line-1)', display: 'flex', gap: 8, flexShrink: 0, alignItems: 'center', flexWrap: 'wrap' }}>
           <button className="btn ghost" onClick={onClose} disabled={saving}>Abbrechen</button>
-          <label style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 8, fontSize: 12.5, color: 'var(--fg-1)', cursor: 'pointer' }}>
+          <label style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 12.5, color: 'var(--fg-1)', cursor: 'pointer' }}>
             <input type="checkbox" checked={subscribed} onChange={e => setSubscribed(e.target.checked)} />
-            Signal-Abonnierung aktivieren (AI Scout sammelt automatisch Signale)
+            Signal-Abonnierung aktivieren
           </label>
           <div style={{ flex: 1 }}/>
           <button className="btn primary" onClick={save} disabled={saving}>
