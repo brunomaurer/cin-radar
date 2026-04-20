@@ -144,7 +144,7 @@ export const Explorer = ({ t, data, search, onOpenTrend, campaigns }) => {
         <button className="btn sm" onClick={() => window.__openAI?.()}><Icon name="eye" size={12}/> {t("review")}</button>
       </div>
 
-      {view === "table" ? (
+      {view === "table" && (
         <div className="scroll" style={{ flex: 1, overflow: "auto" }}>
           <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 12.5 }}>
             <thead style={{ position: "sticky", top: 0, background: "var(--bg-0)", zIndex: 2 }}>
@@ -222,7 +222,9 @@ export const Explorer = ({ t, data, search, onOpenTrend, campaigns }) => {
             </tbody>
           </table>
         </div>
-      ) : (
+      )}
+
+      {view === "cards" && (
         <div className="scroll" style={{ flex: 1, padding: 16, display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(280px,1fr))", gap: 12, alignContent: "start" }}>
           {rows.map(r => (
             <div key={r.id} className="card" style={{ padding: 14, cursor: "pointer" }} onClick={() => onOpenTrend(r.id)}>
@@ -241,6 +243,28 @@ export const Explorer = ({ t, data, search, onOpenTrend, campaigns }) => {
                 <span style={{ color: "var(--fg-3)" }}>{t("impact")}</span><BarMeter value={r.impact} color="var(--accent)"/><span className="mono">{r.impact}</span>
                 <span style={{ color: "var(--fg-3)" }}>{t("novelty")}</span><BarMeter value={r.novelty} color="var(--ai)"/><span className="mono">{r.novelty}</span>
                 <span style={{ color: "var(--fg-3)" }}>{t("maturity")}</span><BarMeter value={r.maturity} color="#F59E0B"/><span className="mono">{r.maturity}</span>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {view === 'tiles' && (
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(240px, 1fr))', gap: 12, padding: '0 24px' }}>
+          {rows.map(tr => (
+            <div key={tr.id} className="card" style={{ padding: 0, cursor: 'pointer', overflow: 'hidden' }} onClick={() => onOpenTrend(tr.id)}>
+              {tr.imageUrl ? (
+                <img src={tr.imageUrl} alt="" style={{ width: '100%', height: 140, objectFit: 'cover' }} />
+              ) : (
+                <div style={{ width: '100%', height: 140, background: 'var(--bg-3)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--fg-4)', fontSize: 32 }}>
+                  ◻
+                </div>
+              )}
+              <div style={{ padding: '10px 14px' }}>
+                <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--fg-0)', marginBottom: 4, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{tr.title}</div>
+                <div style={{ display: 'flex', gap: 6, alignItems: 'center', fontSize: 11, color: 'var(--fg-3)' }}>
+                  {tr.dim} · {tr.stage}
+                </div>
               </div>
             </div>
           ))}
