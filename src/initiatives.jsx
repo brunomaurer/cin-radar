@@ -486,20 +486,20 @@ const ChatPanel = ({ concept, activeArtefact, onSave }) => {
     : ['Was ist die schwächste Stelle im Brief?', 'Welche Tech-Stack-Optionen?', 'Welche Risiken siehst du?', 'Scope-Cut Vorschläge'];
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', background: 'var(--bg-1)', minWidth: 0 }}>
-      <div style={{ padding: '12px 16px', borderBottom: '1px solid var(--line-1)', display: 'flex', alignItems: 'center', gap: 10 }}>
-        <div style={{ width: 28, height: 28, borderRadius: 7, background: 'linear-gradient(135deg,#A78BFA,#3B82F6)', display: 'grid', placeItems: 'center' }}>
+    <div style={{ display: 'flex', flexDirection: 'column', background: 'var(--bg-1)', minWidth: 0, height: '100%', overflow: 'hidden' }}>
+      <div style={{ padding: '12px 16px', borderBottom: '1px solid var(--line-1)', display: 'flex', alignItems: 'center', gap: 10, flexShrink: 0 }}>
+        <div style={{ width: 28, height: 28, borderRadius: 7, background: 'linear-gradient(135deg,#A78BFA,#3B82F6)', display: 'grid', placeItems: 'center', flexShrink: 0 }}>
           <Icon name="sparkles" size={14}/>
         </div>
-        <div style={{ flex: 1 }}>
+        <div style={{ flex: 1, minWidth: 0 }}>
           <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--fg-0)' }}>MVP-Coach</div>
-          <div className="mono" style={{ fontSize: 10.5, color: 'var(--fg-3)' }}>
+          <div className="mono" style={{ fontSize: 10.5, color: 'var(--fg-3)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
             {activeArtefact ? 'refined · ' + ARTEFACT_META[activeArtefact.id]?.label : 'Kontext: Brief'}
           </div>
         </div>
       </div>
 
-      <div ref={scrollerRef} className="scroll" style={{ flex: 1, overflow: 'auto', padding: 14, display: 'flex', flexDirection: 'column', gap: 10 }}>
+      <div ref={scrollerRef} className="scroll" style={{ flex: 1, minHeight: 0, overflow: 'auto', padding: 14, display: 'flex', flexDirection: 'column', gap: 10 }}>
         {chat.length === 0 && (
           <div style={{ padding: '20px 8px', color: 'var(--fg-3)', fontSize: 12.5, lineHeight: 1.6 }}>
             Hey! Ich bin dein MVP-Coach. Ich lese deinen Brief mit und helfe dir beim Scharfstellen.
@@ -512,7 +512,7 @@ const ChatPanel = ({ concept, activeArtefact, onSave }) => {
               padding: '8px 12px', borderRadius: 10,
               background: m.role === 'user' ? 'var(--accent)' : 'var(--bg-2)',
               color: m.role === 'user' ? 'white' : 'var(--fg-1)',
-              fontSize: 12.5, whiteSpace: 'pre-wrap', lineHeight: 1.55,
+              fontSize: 12.5, whiteSpace: 'pre-wrap', wordBreak: 'break-word', lineHeight: 1.55,
               border: m.role === 'assistant' ? '1px solid var(--line-2)' : 'none',
             }}>{m.content}</div>
           </div>
@@ -524,14 +524,14 @@ const ChatPanel = ({ concept, activeArtefact, onSave }) => {
         )}
       </div>
 
-      <div style={{ padding: '8px 12px', borderTop: '1px solid var(--line-1)', display: 'flex', gap: 5, flexWrap: 'wrap' }}>
+      <div style={{ padding: '8px 12px', borderTop: '1px solid var(--line-1)', display: 'flex', gap: 5, flexWrap: 'wrap', flexShrink: 0 }}>
         {quickPrompts.map(p => (
           <button key={p} className="chip" style={{ cursor: 'pointer', fontSize: 11 }} onClick={() => send(p)} disabled={sending}>{p}</button>
         ))}
       </div>
 
-      <div style={{ padding: 10, borderTop: '1px solid var(--line-1)', display: 'flex', gap: 6 }}>
-        <input className="input" style={{ flex: 1 }} placeholder="Frag den Coach…" value={input}
+      <div style={{ padding: 10, borderTop: '1px solid var(--line-1)', display: 'flex', gap: 6, flexShrink: 0 }}>
+        <input className="input" style={{ flex: 1, minWidth: 0 }} placeholder="Frag den Coach…" value={input}
           onChange={e => setInput(e.target.value)}
           onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); send(); } }}
           disabled={sending}/>
