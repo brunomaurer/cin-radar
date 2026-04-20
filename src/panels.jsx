@@ -2,14 +2,44 @@
 import { Fragment, useState, useEffect } from 'react';
 import { Icon, BarMeter, Sparkline, StageBadge, DimensionDot } from './ui.jsx';
 import { useLocalStorage } from './useLocalStorage.js';
-import { conceptsApi } from './api.js';
+import { conceptsApi, signalsApi, crawlApi, trendsApi } from './api.js';
 
 export const AIScout = ({ open, onClose, data, t }) => {
   const [tab, setTab] = useState("inbox");
   const [prompt, setPrompt] = useState("");
   const [running, setRunning] = useState(false);
   const [dismissedIds, setDismissedIds] = useLocalStorage("cin-ai-dismissed", []);
-  const items = data.aiInbox.filter(n => !dismissedIds.includes(n.id));
+  const [realSignals, setRealSignals] = useState([]);
+  const [lastRun, setLastRun] = useState(null);
+
+  useEffect(() => {
+    if (!open) return;
+    signalsApi.list()
+      .then(sigs => {
+        const aiSignals = (Array.isArray(sigs) ? sigs : []).filter(s => s.channel === 'ai-scout');
+        setRealSignals(aiSignals);
+        if (aiSignals.length > 0) {
+          const latest = aiSignals.reduce((a, b) => (a.createdAt > b.createdAt ? a : b));
+          setLastRun(latest.createdAt);
+        }
+      })
+      .catch(() => {});
+  }, [open, running]);
+
+  // Combine mock aiInbox with real ai-scout signals for display
+  const mockItems = data.aiInbox.filter(n => !dismissedIds.includes(n.id));
+  const realItems = realSignals.filter(s => !dismissedIds.includes(s.id)).map(s => ({
+    id: s.id,
+    title: s.title,
+    source: s.source || '',
+    date: s.createdAt ? new Date(s.createdAt).toLocaleDateString('de-CH') : '',
+    confidence: s.confidence || 0.7,
+    lang: 'en',
+    new: true,
+    matchedTrend: s.trendId ? `Trend #${s.trendId}` : null,
+    proposedTrend: s.title,
+  }));
+  const items = [...realItems, ...mockItems];
 
   if (!open) return null;
 
@@ -17,10 +47,22 @@ export const AIScout = ({ open, onClose, data, t }) => {
   const handleDismiss = id => setDismissedIds(ids => [...ids, id]);
   const handleReset = () => setDismissedIds([]);
 
-  const runScan = () => {
+  const runScan = async () => {
     setRunning(true);
-    setTimeout(() => setRunning(false), 1800);
+    try {
+      const allTrends = await trendsApi.list().then(r => r.trends || []).catch(() => []);
+      const subscribed = allTrends.filter(tr => tr.subscribed || tr.stage === 'Emerging' || tr.stage === 'Trend');
+      await Promise.allSettled(subscribed.slice(0, 10).map(tr => crawlApi.crawl(tr)));
+    } catch (e) {
+      // silent
+    } finally {
+      setRunning(false);
+    }
   };
+
+  const lastRunLabel = lastRun
+    ? (() => { const ms = Date.now() - new Date(lastRun).getTime(); return ms < 60000 ? 'just now' : ms < 3600000 ? Math.floor(ms/60000) + ' min ago' : Math.floor(ms/3600000) + ' h ago'; })()
+    : '12 min ago';
 
   return (
     <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.55)", zIndex: 50, display: "flex", justifyContent: "flex-end" }} onClick={onClose}>
@@ -34,7 +76,7 @@ export const AIScout = ({ open, onClose, data, t }) => {
           </div>
           <div style={{ flex: 1 }}>
             <div style={{ fontWeight: 600, color: "var(--fg-0)" }}>AI Scout</div>
-            <div className="mono" style={{ fontSize: 10.5, color: "var(--fg-3)" }}>monitoring 214 sources · last run 12 min ago</div>
+            <div className="mono" style={{ fontSize: 10.5, color: "var(--fg-3)" }}>monitoring 214 sources · last run {lastRunLabel}</div>
           </div>
           <button className="btn sm" onClick={runScan} disabled={running}>
             {running ? <><span className="spin" style={{ display: "inline-block" }}><Icon name="sparkles" size={12}/></span> Scanning…</> : <><Icon name="bolt" size={12}/> Run scan</>}
