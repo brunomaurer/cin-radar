@@ -16,7 +16,6 @@ export const Dashboard = ({ data, campaignsData, onGo, onOpenTrend, onOpenCaptur
           </p>
         </div>
         <button className="btn sm" onClick={onOpenTweaks}><Icon name="settings" size={13}/> Customize</button>
-        <button className="btn ai sm" onClick={onOpenCapture}><Icon name="sparkles" size={13}/> Capture signal</button>
       </div>
 
       <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 10, marginBottom: 16 }}>
