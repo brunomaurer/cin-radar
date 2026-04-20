@@ -16,9 +16,9 @@ async function request(path, options = {}) {
 export const conceptsApi = {
   list: () => request('/api/concepts'),
   create: (body) => request('/api/concepts', { method: 'POST', body: JSON.stringify(body) }),
-  get: (id) => request('/api/concepts/' + id),
-  update: (id, patch) => request('/api/concepts/' + id, { method: 'PUT', body: JSON.stringify(patch) }),
-  remove: (id) => request('/api/concepts/' + id, { method: 'DELETE' }),
+  get: (id) => request('/api/concepts?id=' + encodeURIComponent(id)),
+  update: (id, patch) => request('/api/concepts?id=' + encodeURIComponent(id), { method: 'PUT', body: JSON.stringify(patch) }),
+  remove: (id) => request('/api/concepts?id=' + encodeURIComponent(id), { method: 'DELETE' }),
 };
 
 export const chatApi = {
