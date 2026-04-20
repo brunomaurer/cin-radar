@@ -1,9 +1,58 @@
 // Campaigns list + workspace + capture dialog + cluster review
 import { useState } from 'react';
 import { Icon, BarMeter, DimensionDot, StageBadge } from './ui.jsx';
+import { campaignsApi } from './api.js';
+
+const NewCampaignDialog = ({ open, onClose, onCreated }) => {
+  const [form, setForm] = useState({ title: '', description: '', question: '', owner: '', tags: '' });
+  const [saving, setSaving] = useState(false);
+  const set = (k, v) => setForm(f => ({ ...f, [k]: v }));
+
+  if (!open) return null;
+
+  const handleSave = async () => {
+    if (!form.title.trim()) return;
+    setSaving(true);
+    try {
+      const campaign = await campaignsApi.create({
+        ...form,
+        tags: form.tags ? form.tags.split(',').map(t => t.trim()).filter(Boolean) : [],
+      });
+      onCreated(campaign);
+      onClose();
+      setForm({ title: '', description: '', question: '', owner: '', tags: '' });
+    } catch (e) {
+      alert('Error creating campaign: ' + e.message);
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  return (
+    <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,.55)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 900 }} onClick={onClose}>
+      <div className="card" style={{ width: 480, padding: 24 }} onClick={e => e.stopPropagation()}>
+        <h3 style={{ margin: '0 0 16px', fontSize: 16, color: 'var(--fg-0)' }}>Neue Kampagne erstellen</h3>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+          <input className="input" placeholder="Titel *" value={form.title} onChange={e => set('title', e.target.value)} autoFocus />
+          <input className="input" placeholder="Leitfrage" value={form.question} onChange={e => set('question', e.target.value)} />
+          <textarea className="input" placeholder="Beschreibung" value={form.description} onChange={e => set('description', e.target.value)} rows={3} style={{ resize: 'vertical' }} />
+          <input className="input" placeholder="Owner" value={form.owner} onChange={e => set('owner', e.target.value)} />
+          <input className="input" placeholder="Tags (kommagetrennt)" value={form.tags} onChange={e => set('tags', e.target.value)} />
+        </div>
+        <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8, marginTop: 16 }}>
+          <button className="btn sm" onClick={onClose}>Abbrechen</button>
+          <button className="btn sm" style={{ background: '#22C55E', color: '#fff', border: 'none' }} onClick={handleSave} disabled={saving || !form.title.trim()}>
+            {saving ? 'Erstellen…' : 'Kampagne erstellen'}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+};
 
 export const CampaignList = ({ data, onOpen, onNewCampaign }) => {
   const [filter, setFilter] = useState("all");
+  const [newCampaignOpen, setNewCampaignOpen] = useState(false);
   const statusColor = { Active: "ok", Open: "accent", Closed: "" };
   const campaigns = data.campaigns.filter(c => filter === "all" ? true : c.status.toLowerCase() === filter);
 
@@ -96,6 +145,14 @@ export const CampaignList = ({ data, onOpen, onNewCampaign }) => {
           </div>
         ))}
       </div>
+      <button
+        className="btn"
+        style={{ background: '#22C55E', color: '#fff', border: 'none', width: '100%', padding: '12px 16px', marginTop: 12, fontSize: 13, fontWeight: 600 }}
+        onClick={() => setNewCampaignOpen(true)}
+      >
+        + Neue Kampagne
+      </button>
+      <NewCampaignDialog open={newCampaignOpen} onClose={() => setNewCampaignOpen(false)} onCreated={(c) => {}} />
     </div>
   );
 };
