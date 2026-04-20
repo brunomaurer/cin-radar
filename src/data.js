@@ -50,12 +50,10 @@ export const CIN_DATA = (function () {
   ];
 
   const funnelStages = [
-    { key: "signals",    label: "Signals",     count: 1840 },
-    { key: "reviewed",   label: "Reviewed",    count: 612 },
-    { key: "clustered",  label: "Clustered",   count: 204 },
-    { key: "trends",     label: "Trends",      count: 48 },
-    { key: "prioritized",label: "Prioritized", count: 12 },
-    { key: "projects",   label: "Projects",    count: 4 },
+    { key: "captured",   label: "Signals captured", count: 1840 },
+    { key: "clustered",  label: "Clustered",         count: 204 },
+    { key: "rated",      label: "Validated & rated", count: 48 },
+    { key: "initiative", label: "Initiatives",       count: 12 },
   ];
 
   const owners = [...new Set(trends.map(t => t.owner))];

@@ -7,7 +7,7 @@ export function parseRoute(pathname) {
   switch (head) {
     case 'explore':     return { route: 'explore' };
     case 'trend':       return arg ? { route: 'trendDetail', trendId: arg } : { route: 'explore' };
-    case 'process':     return { route: 'process', processStage: arg || 'scout' };
+    case 'process':     { const stage = arg || 'scout'; return { route: 'process', processStage: stage === 'validate' ? 'rate' : stage }; }
     case 'campaign':    return arg ? { route: 'campaignWorkspace', campaignId: arg } : { route: 'process', processStage: 'scout' };
     case 'initiatives': return { route: 'initiatives' };
     case 'initiative':  return arg ? { route: 'initiativeDetail', initiativeId: arg } : { route: 'initiatives' };

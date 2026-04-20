@@ -1,4 +1,4 @@
-// Process pipeline — Scout -> Cluster -> Validate -> Rate -> Initiative
+// Process pipeline — Scout -> Cluster -> Rate -> Initiative
 import { Fragment, useState, useEffect } from 'react';
 import { Icon, BarMeter, DimensionDot } from './ui.jsx';
 import { Radar, Matrix, Timeline, Funnel } from './viz.jsx';
@@ -17,11 +17,10 @@ export const ProcessPipeline = ({ data, campaignsData, stage, setStage, onOpenCa
 
   const initiativeCount = initiatives == null ? '…' : initiatives.length;
   const stages = [
-    { k: "scout",      l: "Scout",      n: 1840, c: "#60A5FA", sub: "Capture from the world" },
+    { k: "scout",      l: "Scout",      n: 1840, c: "#34D399", sub: "Capture from all channels" },
     { k: "cluster",    l: "Cluster",    n: 204,  c: "#A78BFA", sub: "AI groups similar signals" },
-    { k: "validate",   l: "Validate",   n: 48,   c: "#F472B6", sub: "Human confirms signal" },
-    { k: "rate",       l: "Rate",       n: 12,   c: "#FBBF24", sub: "Business + AI market rate" },
-    { k: "initiative", l: "Initiative", n: initiativeCount, c: "#34D399", sub: "MVP, spec, build" },
+    { k: "rate",       l: "Rate",       n: 48,   c: "#F59E0B", sub: "Validate & prioritize" },
+    { k: "initiative", l: "Initiative", n: initiativeCount,  c: "#60A5FA", sub: "MVP & build" },
   ];
   const [view, setView] = useState("pipeline");
 
@@ -70,7 +69,6 @@ export const ProcessPipeline = ({ data, campaignsData, stage, setStage, onOpenCa
           <Fragment>
             {stage === "scout" && <ScoutStage campaigns={campaignsData.campaigns} onOpenCampaign={onOpenCampaign} onOpenCapture={onOpenCapture}/>}
             {stage === "cluster" && <ClusterStage clusters={campaignsData.clusters} ideas={campaignsData.ideas} onOpenCluster={onOpenCluster}/>}
-            {stage === "validate" && <ValidateStage trends={data.trends}/>}
             {stage === "rate" && <RateStage trends={data.trends} onLaunch={onLaunchInitiative}/>}
             {stage === "initiative" && <InitiativeStage initiatives={initiatives} trends={data.trends} onOpen={onOpenInitiative} onGoToRate={() => setStage('rate')}/>}
           </Fragment>
@@ -143,50 +141,28 @@ const ClusterStage = ({ clusters, ideas, onOpenCluster }) => (
   </div>
 );
 
-const ValidateStage = ({ trends }) => (
-  <div style={{ padding: 20 }}>
-    <div style={{ fontSize: 12.5, color: "var(--fg-2)", marginBottom: 14 }}>Accepted clusters become trend candidates. Assign an owner, confirm dimension & horizon, check for duplicates.</div>
-    <div className="card" style={{ overflow: "hidden" }}>
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 120px 120px 120px 120px 100px", padding: "10px 16px", borderBottom: "1px solid var(--line-1)", fontSize: 11, color: "var(--fg-3)", textTransform: "uppercase", letterSpacing: 0.5 }}>
-        <span>Trend candidate</span><span>Dimension</span><span>Horizon</span><span>Evidence</span><span>AI check</span><span/>
-      </div>
-      {trends.slice(0, 6).map(t => (
-        <div key={t.id} style={{ display: "grid", gridTemplateColumns: "1fr 120px 120px 120px 120px 100px", padding: "12px 16px", borderBottom: "1px solid var(--line-1)", alignItems: "center" }}>
-          <span style={{ fontSize: 13, color: "var(--fg-0)" }}>{t.title}</span>
-          <span style={{ fontSize: 12, color: "var(--fg-2)", display: "inline-flex", gap: 6, alignItems: "center" }}><DimensionDot dim={t.dim}/>{t.dim}</span>
-          <span className="mono" style={{ fontSize: 11, color: "var(--fg-2)" }}>{t.horizon.split(" · ")[0]}</span>
-          <span className="mono" style={{ fontSize: 11, color: "var(--fg-1)" }}>{t.signals} sig · {t.sources || 30} src</span>
-          <span className="chip ai mono" style={{ fontSize: 10 }}>✓ no dup</span>
-          <div style={{ display: "flex", gap: 4 }}>
-            <button className="btn primary sm" style={{ height: 24 }}><Icon name="check" size={11}/></button>
-            <button className="btn ghost sm" style={{ height: 24 }}><Icon name="x" size={11}/></button>
-          </div>
-        </div>
-      ))}
-    </div>
-  </div>
-);
-
 const RateStage = ({ trends, onLaunch }) => {
   const top = trends.slice(0, 5);
   return (
     <div style={{ padding: 20 }}>
-      <div style={{ fontSize: 12.5, color: "var(--fg-2)", marginBottom: 14 }}>Validated trends are rated: your team estimates business fit, AI estimates market momentum from real signal data. "Launch" erzeugt eine Initiative mit vorgefülltem MVP-Brief.</div>
+      <div style={{ fontSize: 12.5, color: "var(--fg-2)", marginBottom: 14 }}>Accepted clusters are validated and rated: confirm evidence & duplicates, estimate team fit, let AI rate market momentum. "Launch" erzeugt eine Initiative mit vorgefülltem MVP-Brief.</div>
       <div className="card" style={{ overflow: "hidden" }}>
-        <div style={{ display: "grid", gridTemplateColumns: "48px 1fr 140px 140px 120px 100px", padding: "10px 16px", borderBottom: "1px solid var(--line-1)", fontSize: 11, color: "var(--fg-3)", textTransform: "uppercase", letterSpacing: 0.5 }}>
-          <span>Rank</span><span>Trend</span><span>Team fit</span><span>AI market rate</span><span>Composite</span><span/>
+        <div style={{ display: "grid", gridTemplateColumns: "48px 1fr 120px 90px 140px 140px 120px 100px", padding: "10px 16px", borderBottom: "1px solid var(--line-1)", fontSize: 11, color: "var(--fg-3)", textTransform: "uppercase", letterSpacing: 0.5 }}>
+          <span>Rank</span><span>Trend</span><span>Evidence</span><span>Dup check</span><span>Team fit</span><span>AI market rate</span><span>Composite</span><span/>
         </div>
         {top.map((t, i) => {
           const team = 50 + ((t.impact * 7) % 40);
           const ai = Math.round(t.impact * 0.9);
           const composite = Math.round((team + ai) / 2);
           return (
-            <div key={t.id} style={{ display: "grid", gridTemplateColumns: "48px 1fr 140px 140px 120px 100px", padding: "12px 16px", borderBottom: "1px solid var(--line-1)", alignItems: "center" }}>
+            <div key={t.id} style={{ display: "grid", gridTemplateColumns: "48px 1fr 120px 90px 140px 140px 120px 100px", padding: "12px 16px", borderBottom: "1px solid var(--line-1)", alignItems: "center" }}>
               <span className="mono" style={{ fontSize: 16, color: i === 0 ? "#FBBF24" : "var(--fg-2)", fontWeight: 600 }}>#{i+1}</span>
               <div>
                 <div style={{ fontSize: 13, color: "var(--fg-0)" }}>{t.title}</div>
                 <div className="mono" style={{ fontSize: 10.5, color: "var(--fg-3)", marginTop: 2 }}>{t.dim} · {t.horizon.split(" · ")[0]}</div>
               </div>
+              <span className="mono" style={{ fontSize: 11, color: "var(--fg-1)" }}>{t.signals} sig · {t.sources || 30} src</span>
+              <span className="chip ai mono" style={{ fontSize: 10 }}>✓ no dup</span>
               <div style={{ display: "flex", gap: 2 }}>
                 {[1,2,3,4,5].map(n => (
                   <div key={n} style={{ width: 14, height: 14, borderRadius: 3, background: n <= Math.round(team/20) ? "var(--accent)" : "var(--bg-3)" }}/>
@@ -284,8 +260,7 @@ const PipelineBoard = ({ data, campaignsData, stages, initiatives, onOpenInitiat
   const allCards = [
     ...campaignsData.ideas.slice(0, 8).map(i => ({ id: "s" + i.id, origin: "scout",      title: i.text,  sub: "signal · " + (i.source || "web"),                     color: "#60A5FA" })),
     ...campaignsData.clusters.slice(0, 6).map(cl => ({ id: "c" + cl.id, origin: "cluster", title: cl.label, sub: `${cl.confidence*100|0}% conf · AI cluster`,           color: cl.color, ai: true, onClick: () => onOpenCluster(cl.id) })),
-    ...data.trends.slice(0, 4).map(t => ({ id: "v" + t.id, origin: "validate", title: t.title, sub: t.dim + " · needs owner",                                         color: "#F472B6" })),
-    ...data.trends.slice(4, 7).map(t => ({ id: "r" + t.id, origin: "rate",     title: t.title, sub: `team ${60+(t.impact*3)%30} · AI ${Math.round(t.impact*0.9)}`,    color: "#FBBF24" })),
+    ...data.trends.slice(0, 7).map(t => ({ id: "r" + t.id, origin: "rate",     title: t.title, sub: `${t.signals} sig · team ${60+(t.impact*3)%30} · AI ${Math.round(t.impact*0.9)}`, color: "#F59E0B" })),
     ...initiativeCards,
   ];
   const cardsById = Object.fromEntries(allCards.map(c => [c.id, c]));
@@ -361,7 +336,7 @@ const PipelineBoard = ({ data, campaignsData, stages, initiatives, onOpenInitiat
         </div>
         {hasChanges && <button className="btn ghost sm" onClick={resetBoard}><Icon name="x" size={11}/> Reset ({changedCount})</button>}
       </div>
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(5, 1fr)", gap: 10, flex: 1, minHeight: 0 }}>
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 10, flex: 1, minHeight: 0 }}>
         {stages.map(s => {
           const cards = (board[s.k] || []).map(id => cardsById[id]).filter(Boolean);
           const isHover = hoverStage === s.k;
