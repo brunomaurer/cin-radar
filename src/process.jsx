@@ -162,9 +162,19 @@ const NewClusterDialog = ({ open, onClose, onCreated }) => {
   );
 };
 
-const ClusterStage = ({ clusters, ideas, onOpenCluster, onReviewAsTrend }) => {
+const ClusterStage = ({ clusters: mockClusters, ideas, onOpenCluster, onReviewAsTrend }) => {
   const [newClusterOpen, setNewClusterOpen] = useState(false);
   const [generating, setGenerating] = useState(null); // clusterId currently being generated
+  const [apiClusters, setApiClusters] = useState([]);
+
+  useEffect(() => {
+    clustersApi.list()
+      .then(list => setApiClusters(Array.isArray(list) ? list : []))
+      .catch(() => {});
+  }, []);
+
+  // Merge mock clusters with API clusters (API clusters have origin field)
+  const clusters = [...mockClusters, ...apiClusters.filter(ac => !mockClusters.some(mc => mc.id === ac.id))];
 
   const handleReviewAsTrend = async (cl) => {
     if (!onReviewAsTrend) { onOpenCluster(cl.id); return; }
@@ -219,7 +229,7 @@ const ClusterStage = ({ clusters, ideas, onOpenCluster, onReviewAsTrend }) => {
       <button className="btn sm" style={{ width: '100%', marginTop: 12, borderStyle: 'dashed' }} onClick={() => setNewClusterOpen(true)}>
         + Neuer Cluster
       </button>
-      <NewClusterDialog open={newClusterOpen} onClose={() => setNewClusterOpen(false)} onCreated={(c) => {}} />
+      <NewClusterDialog open={newClusterOpen} onClose={() => setNewClusterOpen(false)} onCreated={(c) => { setApiClusters(prev => [c, ...prev]); }} />
     </div>
   );
 };
