@@ -3,9 +3,9 @@ import { Fragment, useState, useEffect } from 'react';
 import { Icon, BarMeter, DimensionDot } from './ui.jsx';
 import { Radar, Matrix, Timeline, Funnel } from './viz.jsx';
 import { useLocalStorage } from './useLocalStorage.js';
-import { conceptsApi, clustersApi } from './api.js';
+import { conceptsApi, clustersApi, clusterToTrendApi } from './api.js';
 
-export const ProcessPipeline = ({ data, campaignsData, campaigns, stage, setStage, onOpenCampaign, onOpenCluster, onOpenCapture, onOpenInitiative, onLaunchInitiative }) => {
+export const ProcessPipeline = ({ data, campaignsData, campaigns, stage, setStage, onOpenCampaign, onOpenCluster, onOpenCapture, onOpenInitiative, onLaunchInitiative, onReviewAsTrend }) => {
   const [initiatives, setInitiatives] = useState(null);
   const [campaignFilter, setCampaignFilter] = useState('');
   useEffect(() => {
@@ -75,7 +75,7 @@ export const ProcessPipeline = ({ data, campaignsData, campaigns, stage, setStag
         ) : (
           <Fragment>
             {stage === "scout" && <ScoutStage campaigns={campaignsData.campaigns} onOpenCampaign={onOpenCampaign} onOpenCapture={onOpenCapture}/>}
-            {stage === "cluster" && <ClusterStage clusters={campaignsData.clusters} ideas={campaignsData.ideas} onOpenCluster={onOpenCluster}/>}
+            {stage === "cluster" && <ClusterStage clusters={campaignsData.clusters} ideas={campaignsData.ideas} onOpenCluster={onOpenCluster} onReviewAsTrend={onReviewAsTrend}/>}
             {stage === "rate" && <RateStage trends={data.trends} onLaunch={onLaunchInitiative}/>}
             {stage === "initiative" && <InitiativeStage initiatives={initiatives} trends={data.trends} onOpen={onOpenInitiative} onGoToRate={() => setStage('rate')}/>}
           </Fragment>
@@ -160,14 +160,35 @@ const NewClusterDialog = ({ open, onClose, onCreated }) => {
   );
 };
 
-const ClusterStage = ({ clusters, ideas, onOpenCluster }) => {
+const ClusterStage = ({ clusters, ideas, onOpenCluster, onReviewAsTrend }) => {
   const [newClusterOpen, setNewClusterOpen] = useState(false);
+  const [generating, setGenerating] = useState(null); // clusterId currently being generated
+
+  const handleReviewAsTrend = async (cl) => {
+    if (!onReviewAsTrend) { onOpenCluster(cl.id); return; }
+    setGenerating(cl.id);
+    try {
+      const signals = ideas.filter(i => i.cluster === cl.id).map(i => ({
+        title: i.text,
+        summary: null,
+        source: i.url || i.author || null,
+      }));
+      const prefill = await clusterToTrendApi.generate({ cluster: cl, signals });
+      onReviewAsTrend(prefill);
+    } catch (e) {
+      alert('AI-Generierung fehlgeschlagen: ' + e.message);
+    } finally {
+      setGenerating(null);
+    }
+  };
+
   return (
     <div style={{ padding: 20 }}>
       <div style={{ fontSize: 12.5, color: "var(--fg-2)", marginBottom: 14 }}>AI groups incoming signals into semantic clusters. Clusters with ≥ 3 signals and ≥ 0.8 confidence become candidate trends.</div>
       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(280px, 1fr))", gap: 12 }}>
         {clusters.map(cl => {
           const count = ideas.filter(i => i.cluster === cl.id).length;
+          const isGenerating = generating === cl.id;
           return (
             <div key={cl.id} className="card" style={{ padding: 14, borderLeft: `3px solid ${cl.color}` }}>
               <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 8 }}>
@@ -177,7 +198,15 @@ const ClusterStage = ({ clusters, ideas, onOpenCluster }) => {
               </div>
               <div style={{ fontSize: 13.5, color: "var(--fg-0)", fontWeight: 500, marginBottom: 10 }}>{cl.label}</div>
               {cl.proposed ? (
-                <button className="btn ai sm" style={{ width: "100%" }} onClick={() => onOpenCluster(cl.id)}><Icon name="sparkles" size={12}/> Review as trend</button>
+                <button
+                  className="btn ai sm"
+                  style={{ width: "100%" }}
+                  disabled={isGenerating}
+                  onClick={() => handleReviewAsTrend(cl)}
+                >
+                  <Icon name="sparkles" size={12}/>
+                  {isGenerating ? ' Generiere…' : ' Review as trend'}
+                </button>
               ) : (
                 <div className="mono" style={{ fontSize: 10.5, color: "var(--fg-3)" }}>needs more signals</div>
               )}

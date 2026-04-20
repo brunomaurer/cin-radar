@@ -41,6 +41,7 @@ const App = () => {
 
   const [captureOpen, setCaptureOpen] = useState(false);
   const [newTrendOpen, setNewTrendOpen] = useState(false);
+  const [trendPrefill, setTrendPrefill] = useState(null);
   const [clusterReviewId, setClusterReviewId] = useState(null);
   const [lang, setLang] = useState("de");
   const [search, setSearch] = useState("");
@@ -115,7 +116,7 @@ const App = () => {
   if (route === "dashboard")              content = <Dashboard data={data} campaignsData={campaignsData} onGo={goTo} onOpenTrend={openTrend} onOpenCapture={() => setCaptureOpen(true)} onOpenTweaks={() => setTweaksOpen(true)} onOpenAI={() => setAiOpen(true)}/>;
   else if (route === "explore")           content = <Explorer t={t} data={data} search={search} onOpenTrend={openTrend} campaigns={campaigns}/>;
   else if (route === "trendDetail")       content = <TrendDetail t={t} data={data} trendId={trendId} onBack={backFromTrend} onUpdate={updateTrend} onOpenTrend={openTrend}/>;
-  else if (route === "process")           content = <ProcessPipeline data={data} campaignsData={campaignsData} campaigns={campaigns} stage={processStage} setStage={setProcessStage} onOpenCampaign={openCampaign} onOpenCluster={id => setClusterReviewId(id)} onOpenCapture={() => setCaptureOpen(true)} onOpenInitiative={openInitiative} onLaunchInitiative={launchInitiativeFromTrend}/>;
+  else if (route === "process")           content = <ProcessPipeline data={data} campaignsData={campaignsData} campaigns={campaigns} stage={processStage} setStage={setProcessStage} onOpenCampaign={openCampaign} onOpenCluster={id => setClusterReviewId(id)} onOpenCapture={() => setCaptureOpen(true)} onOpenInitiative={openInitiative} onLaunchInitiative={launchInitiativeFromTrend} onReviewAsTrend={prefill => { setTrendPrefill(prefill); setNewTrendOpen(true); }}/>;
   else if (route === "campaignWorkspace") content = <CampaignWorkspace {...campaignsData} campaignId={campaignId} onBack={backToProcess} onOpenCapture={() => setCaptureOpen(true)} onOpenCluster={id => setClusterReviewId(id)}/>;
   else if (route === "initiativeDetail")  content = <ConceptWorkspace id={initiativeId} trends={data.trends} onBack={() => navigate(buildPath({ route: 'initiatives' }))}/>;
   else if (route === "analytics")         content = <AnalyticsHub t={t} data={data} onOpenTrend={openTrend}/>;
@@ -140,11 +141,13 @@ const App = () => {
       <CaptureDialog open={captureOpen} onClose={() => setCaptureOpen(false)}/>
       <NewTrendDialog
         open={newTrendOpen}
-        onClose={() => setNewTrendOpen(false)}
+        onClose={() => { setNewTrendOpen(false); setTrendPrefill(null); }}
+        prefill={trendPrefill}
         dimensions={data.dimensions}
         horizons={data.horizons}
         stages={data.stages}
         onCreated={(trend) => {
+          setTrendPrefill(null);
           setCustomTrends(prev => [trend, ...prev]);
           navigate(buildPath({ route: 'trendDetail', trendId: trend.id }));
         }}
