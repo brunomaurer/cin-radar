@@ -17,7 +17,7 @@ const processStageMap = {
   initiative: ['Mainstream', 'Fading'],
 };
 
-export const Explorer = ({ t, data, search, onOpenTrend }) => {
+export const Explorer = ({ t, data, search, onOpenTrend, campaigns }) => {
   const [dim, setDim] = useState("all");
   const [horizon, setHorizon] = useState("all");
   const [stage, setStage] = useState("all");
@@ -26,6 +26,7 @@ export const Explorer = ({ t, data, search, onOpenTrend }) => {
   const [view, setView] = useState("table");
   const [selected, setSelected] = useState(new Set());
   const [processFilter, setProcessFilter] = useState('all');
+  const [campaignFilter, setCampaignFilter] = useState('');
 
   const rows = useMemo(() => {
     let r = data.trends.slice();
@@ -41,12 +42,13 @@ export const Explorer = ({ t, data, search, onOpenTrend }) => {
       const allowed = processStageMap[processFilter] || [];
       r = r.filter(tr => allowed.includes(tr.stage));
     }
+    if (campaignFilter) r = r.filter(tr => tr.campaignId === campaignFilter);
     r.sort((a, b) => {
       const v = typeof a[sort.key] === "string" ? a[sort.key].localeCompare(b[sort.key]) : a[sort.key] - b[sort.key];
       return sort.dir === "asc" ? v : -v;
     });
     return r;
-  }, [data, search, dim, horizon, stage, owner, sort, processFilter]);
+  }, [data, search, dim, horizon, stage, owner, sort, processFilter, campaignFilter]);
 
   const clear = () => { setDim("all"); setHorizon("all"); setStage("all"); setOwner("all"); };
 
@@ -68,7 +70,13 @@ export const Explorer = ({ t, data, search, onOpenTrend }) => {
 
   return (
     <div style={{ display: "flex", flexDirection: "column", height: "100%" }}>
-      <div style={{ display: 'flex', gap: 4, marginBottom: 12, padding: '0 24px' }}>
+      <div style={{ display: 'flex', gap: 8, padding: '12px 24px 0' }}>
+        <select className="btn sm" value={campaignFilter} onChange={e => setCampaignFilter(e.target.value)} style={{ fontSize: 12 }}>
+          <option value="">Alle Kampagnen</option>
+          {(campaigns || []).map(c => <option key={c.id} value={c.id}>{c.title}</option>)}
+        </select>
+      </div>
+      <div style={{ display: 'flex', gap: 4, marginBottom: 12, padding: '8px 24px 0' }}>
         {processStages.map(s => (
           <button
             key={s.k}

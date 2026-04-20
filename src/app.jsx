@@ -13,7 +13,7 @@ import { ConceptList, ConceptWorkspace } from './initiatives.jsx';
 import { SignalList } from './signals.jsx';
 import { NewTrendDialog } from './trends.jsx';
 import { useLocation, parseRoute, buildPath } from './router.js';
-import { conceptsApi, trendsApi } from './api.js';
+import { conceptsApi, trendsApi, campaignsApi } from './api.js';
 
 const App = () => {
   const campaignsData = CIN_CAMPAIGNS;
@@ -24,6 +24,11 @@ const App = () => {
   const [customTrends, setCustomTrends] = useState([]);
   useEffect(() => {
     trendsApi.list().then(r => setCustomTrends(r.trends || [])).catch(() => {});
+  }, []);
+
+  const [campaigns, setCampaigns] = useState([]);
+  useEffect(() => {
+    campaignsApi.list().then(setCampaigns).catch(() => {});
   }, []);
 
   const data = (() => {
@@ -108,9 +113,9 @@ const App = () => {
 
   let content;
   if (route === "dashboard")              content = <Dashboard data={data} campaignsData={campaignsData} onGo={goTo} onOpenTrend={openTrend} onOpenCapture={() => setCaptureOpen(true)} onOpenTweaks={() => setTweaksOpen(true)} onOpenAI={() => setAiOpen(true)}/>;
-  else if (route === "explore")           content = <Explorer t={t} data={data} search={search} onOpenTrend={openTrend}/>;
+  else if (route === "explore")           content = <Explorer t={t} data={data} search={search} onOpenTrend={openTrend} campaigns={campaigns}/>;
   else if (route === "trendDetail")       content = <TrendDetail t={t} data={data} trendId={trendId} onBack={backFromTrend} onUpdate={updateTrend} onOpenTrend={openTrend}/>;
-  else if (route === "process")           content = <ProcessPipeline data={data} campaignsData={campaignsData} stage={processStage} setStage={setProcessStage} onOpenCampaign={openCampaign} onOpenCluster={id => setClusterReviewId(id)} onOpenCapture={() => setCaptureOpen(true)} onOpenInitiative={openInitiative} onLaunchInitiative={launchInitiativeFromTrend}/>;
+  else if (route === "process")           content = <ProcessPipeline data={data} campaignsData={campaignsData} campaigns={campaigns} stage={processStage} setStage={setProcessStage} onOpenCampaign={openCampaign} onOpenCluster={id => setClusterReviewId(id)} onOpenCapture={() => setCaptureOpen(true)} onOpenInitiative={openInitiative} onLaunchInitiative={launchInitiativeFromTrend}/>;
   else if (route === "campaignWorkspace") content = <CampaignWorkspace {...campaignsData} campaignId={campaignId} onBack={backToProcess} onOpenCapture={() => setCaptureOpen(true)} onOpenCluster={id => setClusterReviewId(id)}/>;
   else if (route === "initiativeDetail")  content = <ConceptWorkspace id={initiativeId} trends={data.trends} onBack={() => navigate(buildPath({ route: 'initiatives' }))}/>;
   else if (route === "analytics")         content = <AnalyticsHub t={t} data={data} onOpenTrend={openTrend}/>;

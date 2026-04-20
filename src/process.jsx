@@ -5,8 +5,9 @@ import { Radar, Matrix, Timeline, Funnel } from './viz.jsx';
 import { useLocalStorage } from './useLocalStorage.js';
 import { conceptsApi, clustersApi } from './api.js';
 
-export const ProcessPipeline = ({ data, campaignsData, stage, setStage, onOpenCampaign, onOpenCluster, onOpenCapture, onOpenInitiative, onLaunchInitiative }) => {
+export const ProcessPipeline = ({ data, campaignsData, campaigns, stage, setStage, onOpenCampaign, onOpenCluster, onOpenCapture, onOpenInitiative, onLaunchInitiative }) => {
   const [initiatives, setInitiatives] = useState(null);
+  const [campaignFilter, setCampaignFilter] = useState('');
   useEffect(() => {
     let cancel = false;
     conceptsApi.list()
@@ -26,6 +27,12 @@ export const ProcessPipeline = ({ data, campaignsData, stage, setStage, onOpenCa
 
   return (
     <div style={{ display: "flex", flexDirection: "column", height: "100%" }}>
+      <div style={{ padding: "10px 20px 0", borderBottom: "none" }}>
+        <select className="btn sm" value={campaignFilter} onChange={e => setCampaignFilter(e.target.value)} style={{ fontSize: 12 }}>
+          <option value="">Alle Kampagnen</option>
+          {(campaigns || []).map(c => <option key={c.id} value={c.id}>{c.title}</option>)}
+        </select>
+      </div>
       <div style={{ padding: "16px 20px", borderBottom: "1px solid var(--line-1)" }}>
         <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
           <h1 style={{ margin: 0, fontSize: 18, fontWeight: 600, color: "var(--fg-0)" }}>Innovation pipeline</h1>
