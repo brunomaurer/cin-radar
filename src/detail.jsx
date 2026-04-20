@@ -53,6 +53,10 @@ export const TrendDetail = ({ t, data, trendId, onBack, onUpdate, onOpenTrend })
           <span className="mono">#{trend.id}</span>
         </div>
 
+        {trend.imageUrl && (
+          <img src={trend.imageUrl} alt="" style={{ width: '100%', height: 180, objectFit: 'cover', borderRadius: 8, marginBottom: 12 }} />
+        )}
+
         <div style={{ display: "flex", alignItems: "flex-start", gap: 16 }}>
           <div style={{ flex: 1 }}>
             <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 6 }}>

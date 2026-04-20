@@ -1,5 +1,5 @@
 // Explorer — table/list with filters, sort, search
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { Icon, BarMeter, Sparkline, StageBadge, DimensionDot } from './ui.jsx';
 
 const processStages = [
@@ -27,6 +27,12 @@ export const Explorer = ({ t, data, search, onOpenTrend, campaigns }) => {
   const [selected, setSelected] = useState(new Set());
   const [processFilter, setProcessFilter] = useState('all');
   const [campaignFilter, setCampaignFilter] = useState('');
+  const [channelFilter, setChannelFilter] = useState('');
+
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    if (params.get('channel')) setChannelFilter(params.get('channel'));
+  }, []);
 
   const rows = useMemo(() => {
     let r = data.trends.slice();
@@ -43,12 +49,13 @@ export const Explorer = ({ t, data, search, onOpenTrend, campaigns }) => {
       r = r.filter(tr => allowed.includes(tr.stage));
     }
     if (campaignFilter) r = r.filter(tr => tr.campaignId === campaignFilter);
+    if (channelFilter) r = r.filter(tr => tr.channel === channelFilter);
     r.sort((a, b) => {
       const v = typeof a[sort.key] === "string" ? a[sort.key].localeCompare(b[sort.key]) : a[sort.key] - b[sort.key];
       return sort.dir === "asc" ? v : -v;
     });
     return r;
-  }, [data, search, dim, horizon, stage, owner, sort, processFilter, campaignFilter]);
+  }, [data, search, dim, horizon, stage, owner, sort, processFilter, campaignFilter, channelFilter]);
 
   const clear = () => { setDim("all"); setHorizon("all"); setStage("all"); setOwner("all"); };
 
@@ -74,6 +81,13 @@ export const Explorer = ({ t, data, search, onOpenTrend, campaigns }) => {
         <select className="btn sm" value={campaignFilter} onChange={e => setCampaignFilter(e.target.value)} style={{ fontSize: 12 }}>
           <option value="">Alle Kampagnen</option>
           {(campaigns || []).map(c => <option key={c.id} value={c.id}>{c.title}</option>)}
+        </select>
+        <select className="btn sm" value={channelFilter} onChange={e => setChannelFilter(e.target.value)} style={{ fontSize: 12 }}>
+          <option value="">All channels</option>
+          <option value="manual">Manual</option>
+          <option value="url">URL import</option>
+          <option value="pdf">PDF import</option>
+          <option value="ai-scout">AI Scout</option>
         </select>
       </div>
       <div style={{ display: 'flex', gap: 4, marginBottom: 12, padding: '8px 24px 0' }}>
@@ -109,6 +123,7 @@ export const Explorer = ({ t, data, search, onOpenTrend, campaigns }) => {
         <div style={{ display: "flex", background: "var(--bg-2)", border: "1px solid var(--line-2)", borderRadius: 6, padding: 2 }}>
           <button onClick={() => setView("table")} style={{ padding: "4px 8px", borderRadius: 4, background: view === "table" ? "var(--bg-3)" : "transparent", color: view === "table" ? "var(--fg-0)" : "var(--fg-3)" }}><Icon name="list" size={13}/></button>
           <button onClick={() => setView("cards")} style={{ padding: "4px 8px", borderRadius: 4, background: view === "cards" ? "var(--bg-3)" : "transparent", color: view === "cards" ? "var(--fg-0)" : "var(--fg-3)" }}><Icon name="grid" size={13}/></button>
+          <button className={`btn sm${view === 'tiles' ? ' active' : ''}`} onClick={() => setView('tiles')} style={view === 'tiles' ? { background: 'var(--accent)', color: '#fff' } : {}}>Tiles</button>
         </div>
 
         <div className="mono" style={{ color: "var(--fg-3)", fontSize: 11 }}>
@@ -211,6 +226,9 @@ export const Explorer = ({ t, data, search, onOpenTrend, campaigns }) => {
         <div className="scroll" style={{ flex: 1, padding: 16, display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(280px,1fr))", gap: 12, alignContent: "start" }}>
           {rows.map(r => (
             <div key={r.id} className="card" style={{ padding: 14, cursor: "pointer" }} onClick={() => onOpenTrend(r.id)}>
+              {r.imageUrl && (
+                <img src={r.imageUrl} alt="" style={{ width: 'calc(100% + 28px)', height: 100, objectFit: 'cover', borderRadius: '6px 6px 0 0', margin: '-12px -14px 8px -14px' }} />
+              )}
               <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 8 }}>
                 <DimensionDot dim={r.dim}/>
                 <span className="mono" style={{ color: "var(--fg-3)", fontSize: 10.5 }}>#{r.id}</span>

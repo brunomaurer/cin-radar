@@ -39,15 +39,37 @@ const EMPTY = {
   summary: '',
 };
 
-export const NewTrendDialog = ({ open, onClose, onCreated, dimensions, horizons, stages }) => {
+export const NewTrendDialog = ({ open, onClose, onCreated, prefill, dimensions, horizons, stages }) => {
   const [form, setForm] = useState(EMPTY);
   const [subscribed, setSubscribed] = useState(false);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState(null);
+  const [imageUrl, setImageUrl] = useState('');
+  const [imgLoading, setImgLoading] = useState(false);
 
   useEffect(() => {
-    if (open) { setForm(EMPTY); setSubscribed(false); setError(null); setSaving(false); }
+    if (open) {
+      setForm(prefill ? {
+        ...EMPTY,
+        ...prefill,
+        tags: Array.isArray(prefill.tags) ? prefill.tags.join(', ') : (prefill.tags || ''),
+      } : EMPTY);
+      setSubscribed(false);
+      setError(null);
+      setSaving(false);
+      setImageUrl(prefill?.imageUrl || '');
+    }
   }, [open]);
+
+  useEffect(() => {
+    if (prefill) {
+      setForm(f => ({
+        ...f,
+        ...prefill,
+        tags: Array.isArray(prefill.tags) ? prefill.tags.join(', ') : (prefill.tags || ''),
+      }));
+    }
+  }, [prefill]);
 
   if (!open) return null;
 
@@ -57,7 +79,7 @@ export const NewTrendDialog = ({ open, onClose, onCreated, dimensions, horizons,
     if (!form.title.trim()) { setError('Titel ist erforderlich'); return; }
     setSaving(true); setError(null);
     try {
-      const r = await trendsApi.create({ ...form, subscribed });
+      const r = await trendsApi.create({ ...form, subscribed, imageUrl });
       onCreated?.(r.trend);
       onClose();
     } catch (e) {
@@ -145,6 +167,26 @@ export const NewTrendDialog = ({ open, onClose, onCreated, dimensions, horizons,
               style={{ width: '100%', padding: '10px 12px', background: 'var(--bg-2)', border: '1px solid var(--line-2)', borderRadius: 8, color: 'var(--fg-0)', fontSize: 13, fontFamily: 'inherit', resize: 'vertical', outline: 'none' }}
               placeholder="1-3 Sätze, was genau dieser Trend ist und warum er wichtig wird."
             />
+          </div>
+
+          <div style={{ marginBottom: 14 }}>
+            <div style={{ marginTop: 8 }}>
+              <label style={{ fontSize: 11, color: 'var(--fg-3)', display: 'block', marginBottom: 4 }}>Bild</label>
+              {imageUrl && <img src={imageUrl} alt="" style={{ width: '100%', height: 120, objectFit: 'cover', borderRadius: 6, marginBottom: 8 }} />}
+              <div style={{ display: 'flex', gap: 8 }}>
+                <input className="input" placeholder="Bild-URL" value={imageUrl} onChange={e => setImageUrl(e.target.value)} style={{ flex: 1 }} />
+                <button className="btn ai sm" type="button" disabled={imgLoading} onClick={async () => {
+                  setImgLoading(true);
+                  try {
+                    const r = await fetch('/api/generate-image', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ title: form.title, tags: form.tags ? form.tags.split(',').map(t => t.trim()) : [] }) });
+                    const data = await r.json();
+                    if (data.url) setImageUrl(data.url);
+                  } catch {} finally { setImgLoading(false); }
+                }}>
+                  {imgLoading ? '…' : 'Generate'}
+                </button>
+              </div>
+            </div>
           </div>
         </div>
 
