@@ -53,12 +53,6 @@ export const TrendDetail = ({ t, data, trendId, onBack, onUpdate, onOpenTrend })
           <span className="mono">#{trend.id}</span>
         </div>
 
-        {trend.imageUrl && (
-          <div style={{ float: 'right', marginLeft: 16, marginBottom: 8 }}>
-            <img src={trend.imageUrl} alt="" style={{ width: 150, height: 200, objectFit: 'cover', borderRadius: 8 }} />
-          </div>
-        )}
-
         <div style={{ display: "flex", alignItems: "flex-start", gap: 16 }}>
           <div style={{ flex: 1 }}>
             <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 6 }}>
@@ -69,19 +63,19 @@ export const TrendDetail = ({ t, data, trendId, onBack, onUpdate, onOpenTrend })
             </div>
             <h1 style={{ margin: 0, color: "var(--fg-0)", fontSize: 22, fontWeight: 600, letterSpacing: -0.2 }}>{trend.title}</h1>
             {trend.summary && <p style={{ margin: "8px 0 0", color: "var(--fg-2)", fontSize: 13.5, maxWidth: 820, lineHeight: 1.55 }}>{trend.summary}</p>}
+            <div style={{ display: "flex", gap: 6, marginTop: 10 }}>
+              <button className="btn sm"><Icon name="star" size={13}/> Watch</button>
+              <button className="btn sm"><Icon name="link" size={13}/> Share</button>
+              <button
+                className={`btn sm${trend.subscribed ? ' ai' : ''}`}
+                onClick={() => onUpdate(trend.id, { subscribed: !trend.subscribed })}
+                style={{ fontSize: 11 }}
+              >
+                {trend.subscribed ? '✓ Subscribed' : '☆ Subscribe'}
+              </button>
+            </div>
           </div>
-          <div style={{ display: "flex", gap: 6 }}>
-            <button className="btn sm"><Icon name="star" size={13}/> Watch</button>
-            <button className="btn sm"><Icon name="link" size={13}/> Share</button>
-            <button
-              className={`btn sm${trend.subscribed ? ' ai' : ''}`}
-              onClick={() => onUpdate(trend.id, { subscribed: !trend.subscribed })}
-              style={{ fontSize: 11 }}
-            >
-              {trend.subscribed ? '✓ Subscribed' : '☆ Subscribe'}
-            </button>
-            <button className="btn primary sm"><Icon name="plus" size={13}/> Add to project</button>
-          </div>
+          <TrendImage trend={trend} onUpdate={onUpdate} />
         </div>
 
         <div style={{ display: "grid", gridTemplateColumns: "repeat(5, 1fr)", gap: 12, marginTop: 16 }}>
@@ -128,6 +122,45 @@ export const TrendDetail = ({ t, data, trendId, onBack, onUpdate, onOpenTrend })
         {tab === "related" && <RelatedTab related={related} loading={relInfo.loading} onOpenTrend={onOpenTrend}/>}
         {tab === "history" && <HistoryTab trend={trend}/>}
       </div>
+    </div>
+  );
+};
+
+const TrendImage = ({ trend, onUpdate }) => {
+  const [generating, setGenerating] = useState(false);
+
+  const generate = async () => {
+    setGenerating(true);
+    try {
+      const r = await fetch('/api/generate-image', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ title: trend.title, dim: trend.dim, summary: trend.summary || '' }),
+      });
+      const data = await r.json();
+      if (data.url) onUpdate(trend.id, { imageUrl: data.url });
+    } catch {} finally {
+      setGenerating(false);
+    }
+  };
+
+  if (trend.imageUrl) {
+    return (
+      <div style={{ flexShrink: 0, position: 'relative' }}>
+        <img src={trend.imageUrl} alt="" style={{ width: 150, height: 200, objectFit: 'cover', borderRadius: 8 }} />
+        <button className="btn sm ghost" onClick={generate} disabled={generating}
+          style={{ position: 'absolute', bottom: 6, right: 6, fontSize: 10, background: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(4px)' }}>
+          {generating ? '…' : '↻'}
+        </button>
+      </div>
+    );
+  }
+
+  return (
+    <div style={{ width: 150, height: 200, flexShrink: 0, background: 'var(--bg-2)', borderRadius: 8, border: '1px dashed var(--line-2)', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
+      <button className="btn ai sm" onClick={generate} disabled={generating} style={{ fontSize: 11 }}>
+        {generating ? 'Generiere…' : 'Bild generieren'}
+      </button>
     </div>
   );
 };
@@ -199,15 +232,6 @@ const OverviewTab = ({ trend, t, signals, related, relLoading }) => (
 
     <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
       <div className="card" style={{ padding: 16 }}>
-        <div style={{ fontSize: 11, color: "var(--fg-3)", textTransform: "uppercase", letterSpacing: 0.8, marginBottom: 12 }}>Metadata</div>
-        <Field label={t("owner")} value={<span style={{ display: "inline-flex", gap: 6, alignItems: "center" }}><span style={{ width: 18, height: 18, borderRadius: 999, background: "#3B82F6", color: "white", fontSize: 10, display: "grid", placeItems: "center", fontWeight: 600 }}>{(trend.owner || '?').split(" ").map(x => x[0]).join("")}</span>{trend.owner || '—'}</span>}/>
-        <Field label="Dimension" value={<span style={{ display: "inline-flex", gap: 6, alignItems: "center" }}><DimensionDot dim={trend.dim}/>{trend.dim}</span>}/>
-        <Field label={t("horizon")} value={<span className="mono">{trend.horizon}</span>}/>
-        <Field label={t("stage")} value={<StageBadge stage={trend.stage}/>}/>
-        <Field label={t("updated")} value={<span className="mono" style={{ color: "var(--fg-2)" }}>{trend.updated}</span>} last/>
-      </div>
-
-      <div className="card" style={{ padding: 16 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 10 }}>
           <span style={{ fontSize: 11, color: "var(--fg-3)", textTransform: "uppercase", letterSpacing: 0.8 }}>{t("related")}</span>
           <span className="chip ai mono" style={{ fontSize: 10 }}><Icon name="sparkles" size={10}/>AI</span>
@@ -226,6 +250,15 @@ const OverviewTab = ({ trend, t, signals, related, relLoading }) => (
             {r.reason && <div style={{ fontSize: 11, color: "var(--fg-3)", marginTop: 4, lineHeight: 1.4, paddingLeft: 14 }}>{r.reason}</div>}
           </div>
         ))}
+      </div>
+
+      <div className="card" style={{ padding: 16 }}>
+        <div style={{ fontSize: 11, color: "var(--fg-3)", textTransform: "uppercase", letterSpacing: 0.8, marginBottom: 12 }}>Metadata</div>
+        <Field label={t("owner")} value={<span style={{ display: "inline-flex", gap: 6, alignItems: "center" }}><span style={{ width: 18, height: 18, borderRadius: 999, background: "#3B82F6", color: "white", fontSize: 10, display: "grid", placeItems: "center", fontWeight: 600 }}>{(trend.owner || '?').split(" ").map(x => x[0]).join("")}</span>{trend.owner || '—'}</span>}/>
+        <Field label="Dimension" value={<span style={{ display: "inline-flex", gap: 6, alignItems: "center" }}><DimensionDot dim={trend.dim}/>{trend.dim}</span>}/>
+        <Field label={t("horizon")} value={<span className="mono">{trend.horizon}</span>}/>
+        <Field label={t("stage")} value={<StageBadge stage={trend.stage}/>}/>
+        <Field label={t("updated")} value={<span className="mono" style={{ color: "var(--fg-2)" }}>{trend.updated}</span>} last/>
       </div>
     </div>
   </div>
