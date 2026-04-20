@@ -2,7 +2,7 @@
 import { useState, useEffect } from 'react';
 import { Icon, BarMeter, StageBadge, DimensionDot } from './ui.jsx';
 import { EditableBar } from './trends.jsx';
-import { relationsApi } from './api.js';
+import { relationsApi, crawlApi } from './api.js';
 
 export const TrendDetail = ({ t, data, trendId, onBack, onUpdate, onOpenTrend }) => {
   const trend = data.trends.find(x => x.id === trendId) || data.trends[0];
@@ -204,7 +204,29 @@ const TrendImage = ({ trend, onUpdate }) => {
   );
 };
 
-const OverviewTab = ({ trend, t, signals, related, relLoading, onUpdate }) => (
+const OverviewTab = ({ trend, t, signals: initialSignals, related, relLoading, onUpdate }) => {
+  const [crawling, setCrawling] = useState(false);
+  const [crawledSignals, setCrawledSignals] = useState([]);
+
+  const toggleSubscription = async () => {
+    const newVal = !trend.subscribed;
+    onUpdate(trend.id, { subscribed: newVal });
+    if (newVal) {
+      setCrawling(true);
+      try {
+        const r = await crawlApi.crawl({ id: trend.id, title: trend.title, dim: trend.dim, summary: trend.summary, tags: trend.tags });
+        setCrawledSignals(r.signals || []);
+      } catch (e) {
+        console.error('Crawl failed:', e);
+      } finally {
+        setCrawling(false);
+      }
+    }
+  };
+
+  const allSignals = [...initialSignals, ...crawledSignals];
+
+  return (
   <div style={{ display: "grid", gridTemplateColumns: "1fr 320px", gap: 16 }}>
     <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
       <div className="card" style={{ padding: 16, background: "linear-gradient(180deg, rgba(167,139,250,0.07), transparent 80%)", borderColor: "rgba(167,139,250,0.25)" }}>
@@ -247,8 +269,9 @@ const OverviewTab = ({ trend, t, signals, related, relLoading, onUpdate }) => (
         <div style={{ padding: "12px 16px", borderBottom: "1px solid var(--line-1)", display: "flex", alignItems: "center", gap: 10 }}>
           <div style={{ fontWeight: 600, color: "var(--fg-0)", fontSize: 13 }}>Recent signals</div>
           <div style={{ flex: 1 }}/>
+          {crawling && <span className="ai-shimmer" style={{ fontSize: 11 }}>Suche Signale…</span>}
           <label style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 11, color: trend.subscribed ? 'var(--ai)' : 'var(--fg-3)', cursor: 'pointer' }}>
-            <div onClick={() => onUpdate(trend.id, { subscribed: !trend.subscribed })}
+            <div onClick={toggleSubscription}
               style={{ width: 32, height: 18, borderRadius: 9, background: trend.subscribed ? 'var(--ai)' : 'var(--bg-3)', position: 'relative', cursor: 'pointer', transition: 'background .2s' }}>
               <div style={{ width: 14, height: 14, borderRadius: 7, background: '#fff', position: 'absolute', top: 2, left: trend.subscribed ? 16 : 2, transition: 'left .2s' }}/>
             </div>
@@ -257,8 +280,8 @@ const OverviewTab = ({ trend, t, signals, related, relLoading, onUpdate }) => (
           <a style={{ color: "var(--accent-2)", fontSize: 12 }}>View all →</a>
         </div>
         <div>
-          {signals.map((s, i) => (
-            <div key={s.id} style={{ padding: "12px 16px", display: "grid", gridTemplateColumns: "auto 1fr auto auto auto", gap: 12, alignItems: "center", borderBottom: i < signals.length - 1 ? "1px solid var(--line-1)" : "none" }}>
+          {allSignals.map((s, i) => (
+            <div key={s.id} style={{ padding: "12px 16px", display: "grid", gridTemplateColumns: "auto 1fr auto auto auto", gap: 12, alignItems: "center", borderBottom: i < allSignals.length - 1 ? "1px solid var(--line-1)" : "none" }}>
               <div style={{ position: "relative", width: 8, height: 8 }}>
                 <span className="dot accent"/>
               </div>
@@ -271,7 +294,7 @@ const OverviewTab = ({ trend, t, signals, related, relLoading, onUpdate }) => (
               <button className="btn ghost icon sm"><Icon name="ext" size={12}/></button>
             </div>
           ))}
-          {signals.length === 0 && <div style={{ padding: 24, color: "var(--fg-3)", fontSize: 12, textAlign: "center" }}>No captured signals yet.</div>}
+          {allSignals.length === 0 && !crawling && <div style={{ padding: 24, color: "var(--fg-3)", fontSize: 12, textAlign: "center" }}>No captured signals yet. Enable Auto-Abo to start collecting.</div>}
         </div>
       </div>
     </div>
@@ -310,7 +333,8 @@ const OverviewTab = ({ trend, t, signals, related, relLoading, onUpdate }) => (
       </div>
     </div>
   </div>
-);
+  );
+};
 
 const Field = ({ label, value, last }) => (
   <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "8px 0", borderBottom: last ? "none" : "1px solid var(--line-1)" }}>

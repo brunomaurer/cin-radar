@@ -67,6 +67,15 @@ export const generateApi = {
     request('/api/generate', { method: 'POST', body: JSON.stringify({ brief, trend, artefact }) }),
 };
 
+export const crawlApi = {
+  crawl: (trend) => request('/api/crawl-signals', { method: 'POST', body: JSON.stringify({ trend }) }),
+};
+
+export const notificationsApi = {
+  list: () => request('/api/notifications'),
+  markRead: () => request('/api/notifications', { method: 'PUT' }),
+};
+
 export const clusterToTrendApi = {
   generate: (body) => request('/api/cluster-to-trend', { method: 'POST', body: JSON.stringify(body) }),
 };

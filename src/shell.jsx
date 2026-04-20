@@ -64,7 +64,7 @@ export const Sidebar = ({ route, setRoute, collapsed, setCollapsed, t }) => (
   </aside>
 );
 
-export const Header = ({ t, lang, setLang, onOpenAI, aiPending, onSearch, search, onNewTrend }) => (
+export const Header = ({ t, lang, setLang, onOpenAI, aiPending, onSearch, search, onNewTrend, unreadNotifs, onMarkRead }) => (
   <header style={{
     display: "flex", alignItems: "center", gap: 12,
     height: 52, padding: "0 16px",
@@ -110,7 +110,19 @@ export const Header = ({ t, lang, setLang, onOpenAI, aiPending, onSearch, search
       <span className="mono" style={{ textTransform: "uppercase", fontSize: 11 }}>{lang}</span>
     </button>
 
-    <button className="btn icon ghost"><Icon name="bell" size={15}/></button>
+    <button className="btn icon ghost" onClick={onMarkRead} style={{ position: 'relative' }}>
+      <Icon name="bell" size={15}/>
+      {unreadNotifs > 0 && (
+        <span style={{
+          position: 'absolute', top: 2, right: 2,
+          width: 16, height: 16, borderRadius: 999,
+          background: '#F43F5E', color: '#fff',
+          fontSize: 9, fontWeight: 700,
+          display: 'grid', placeItems: 'center',
+          animation: 'pulse 2s infinite',
+        }}>{unreadNotifs}</span>
+      )}
+    </button>
 
     <div style={{
       width: 30, height: 30, borderRadius: 999,

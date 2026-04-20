@@ -13,7 +13,7 @@ import { ConceptList, ConceptWorkspace } from './initiatives.jsx';
 import { SignalList } from './signals.jsx';
 import { NewTrendDialog } from './trends.jsx';
 import { useLocation, parseRoute, buildPath } from './router.js';
-import { conceptsApi, trendsApi, campaignsApi } from './api.js';
+import { conceptsApi, trendsApi, campaignsApi, notificationsApi } from './api.js';
 
 const App = () => {
   const campaignsData = CIN_CAMPAIGNS;
@@ -27,8 +27,14 @@ const App = () => {
   }, []);
 
   const [campaigns, setCampaigns] = useState([]);
+  const [unreadNotifs, setUnreadNotifs] = useState(0);
   useEffect(() => {
     campaignsApi.list().then(setCampaigns).catch(() => {});
+    notificationsApi.list().then(r => setUnreadNotifs(r.unread || 0)).catch(() => {});
+    const pollNotifs = setInterval(() => {
+      notificationsApi.list().then(r => setUnreadNotifs(r.unread || 0)).catch(() => {});
+    }, 15000);
+    return () => clearInterval(pollNotifs);
   }, []);
 
   const data = (() => {
@@ -135,7 +141,7 @@ const App = () => {
     <div style={{ display: "flex", height: "100vh", overflow: "hidden" }} data-screen-label={`CIN · ${route}`}>
       <Sidebar route={navRoute} setRoute={r => goTo(r)} collapsed={sidebarCollapsed} setCollapsed={setSidebarCollapsed} t={t}/>
       <div style={{ flex: 1, display: "flex", flexDirection: "column", minWidth: 0 }}>
-        <Header t={t} lang={lang} setLang={setLang} onOpenAI={() => setAiOpen(true)} aiPending={data.aiInbox.length} onSearch={setSearch} search={search} onNewTrend={() => setNewTrendOpen(true)}/>
+        <Header t={t} lang={lang} setLang={setLang} onOpenAI={() => setAiOpen(true)} aiPending={data.aiInbox.length} onSearch={setSearch} search={search} onNewTrend={() => setNewTrendOpen(true)} unreadNotifs={unreadNotifs} onMarkRead={() => { notificationsApi.markRead().then(() => setUnreadNotifs(0)).catch(() => {}); }}/>
         <main style={{ flex: 1, overflow: "hidden", background: "var(--bg-0)" }}>{content}</main>
       </div>
       <AIScout open={aiOpen} onClose={() => setAiOpen(false)} data={data} t={t}/>
