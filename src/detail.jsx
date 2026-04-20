@@ -63,19 +63,19 @@ export const TrendDetail = ({ t, data, trendId, onBack, onUpdate, onOpenTrend })
             </div>
             <h1 style={{ margin: 0, color: "var(--fg-0)", fontSize: 22, fontWeight: 600, letterSpacing: -0.2 }}>{trend.title}</h1>
             {trend.summary && <p style={{ margin: "8px 0 0", color: "var(--fg-2)", fontSize: 13.5, maxWidth: 820, lineHeight: 1.55 }}>{trend.summary}</p>}
-            <div style={{ display: "flex", gap: 6, marginTop: 10 }}>
-              <button className="btn sm"><Icon name="star" size={13}/> Watch</button>
-              <button className="btn sm"><Icon name="link" size={13}/> Share</button>
-              <button
-                className={`btn sm${trend.subscribed ? ' ai' : ''}`}
-                onClick={() => onUpdate(trend.id, { subscribed: !trend.subscribed })}
-                style={{ fontSize: 11 }}
-              >
-                {trend.subscribed ? '✓ Subscribed' : '☆ Subscribe'}
-              </button>
-            </div>
           </div>
-          <TrendImage trend={trend} onUpdate={onUpdate} />
+          <div style={{ display: "flex", gap: 6 }}>
+            <button className="btn sm"><Icon name="star" size={13}/> Watch</button>
+            <button className="btn sm"><Icon name="link" size={13}/> Share</button>
+            <button
+              className={`btn sm${trend.subscribed ? ' ai' : ''}`}
+              onClick={() => onUpdate(trend.id, { subscribed: !trend.subscribed })}
+              style={{ fontSize: 11 }}
+            >
+              {trend.subscribed ? '✓ Subscribed' : '☆ Subscribe'}
+            </button>
+            <button className="btn primary sm"><Icon name="plus" size={13}/> Add to project</button>
+          </div>
         </div>
 
         <div style={{ display: "grid", gridTemplateColumns: "repeat(5, 1fr)", gap: 12, marginTop: 16 }}>
@@ -116,7 +116,7 @@ export const TrendDetail = ({ t, data, trendId, onBack, onUpdate, onOpenTrend })
       </div>
 
       <div className="scroll" style={{ flex: 1, overflow: "auto", padding: 20 }}>
-        {tab === "overview" && <OverviewTab trend={trend} t={t} signals={signals} related={related} relLoading={relInfo.loading}/>}
+        {tab === "overview" && <OverviewTab trend={trend} t={t} signals={signals} related={related} relLoading={relInfo.loading} onUpdate={onUpdate}/>}
         {tab === "evidence" && <EvidenceTab signals={signals}/>}
         {tab === "implications" && <ImplicationsTab/>}
         {tab === "related" && <RelatedTab related={related} loading={relInfo.loading} onOpenTrend={onOpenTrend}/>}
@@ -146,18 +146,19 @@ const TrendImage = ({ trend, onUpdate }) => {
 
   if (trend.imageUrl) {
     return (
-      <div style={{ flexShrink: 0, position: 'relative' }}>
-        <img src={trend.imageUrl} alt="" style={{ width: 150, height: 200, objectFit: 'cover', borderRadius: 8 }} />
+      <div className="card" style={{ padding: 0, overflow: 'hidden', position: 'relative' }}>
+        <img src={trend.imageUrl} alt="" style={{ width: '100%', height: 280, objectFit: 'cover', display: 'block' }} />
         <button className="btn sm ghost" onClick={generate} disabled={generating}
-          style={{ position: 'absolute', bottom: 6, right: 6, fontSize: 10, background: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(4px)' }}>
-          {generating ? '…' : '↻'}
+          style={{ position: 'absolute', bottom: 8, right: 8, fontSize: 10, background: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(4px)' }}>
+          {generating ? '…' : '↻ Neu generieren'}
         </button>
       </div>
     );
   }
 
   return (
-    <div style={{ width: 150, height: 200, flexShrink: 0, background: 'var(--bg-2)', borderRadius: 8, border: '1px dashed var(--line-2)', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
+    <div className="card" style={{ padding: 0, overflow: 'hidden', height: 280, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 8, background: 'var(--bg-2)' }}>
+      <div style={{ color: 'var(--fg-4)', fontSize: 40 }}>◻</div>
       <button className="btn ai sm" onClick={generate} disabled={generating} style={{ fontSize: 11 }}>
         {generating ? 'Generiere…' : 'Bild generieren'}
       </button>
@@ -165,7 +166,7 @@ const TrendImage = ({ trend, onUpdate }) => {
   );
 };
 
-const OverviewTab = ({ trend, t, signals, related, relLoading }) => (
+const OverviewTab = ({ trend, t, signals, related, relLoading, onUpdate }) => (
   <div style={{ display: "grid", gridTemplateColumns: "1fr 320px", gap: 16 }}>
     <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
       <div className="card" style={{ padding: 16, background: "linear-gradient(180deg, rgba(167,139,250,0.07), transparent 80%)", borderColor: "rgba(167,139,250,0.25)" }}>
@@ -231,6 +232,8 @@ const OverviewTab = ({ trend, t, signals, related, relLoading }) => (
     </div>
 
     <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+      <TrendImage trend={trend} onUpdate={onUpdate} />
+
       <div className="card" style={{ padding: 16 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 10 }}>
           <span style={{ fontSize: 11, color: "var(--fg-3)", textTransform: "uppercase", letterSpacing: 0.8 }}>{t("related")}</span>
