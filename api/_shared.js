@@ -21,8 +21,9 @@ export const kv = {
     if (s == null) return null;
     try { return JSON.parse(s); } catch { return s; }
   },
-  async set(key, value) {
+  async set(key, value, opts) {
     const r = getRedis(); if (!r) throw new Error('Redis not configured');
+    if (opts?.ex) return r.set(key, JSON.stringify(value), 'EX', opts.ex);
     return r.set(key, JSON.stringify(value));
   },
   async del(key) {

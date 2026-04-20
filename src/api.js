@@ -28,6 +28,11 @@ export const trendsApi = {
   remove: (id) => request('/api/trends?id=' + encodeURIComponent(id), { method: 'DELETE' }),
 };
 
+export const relationsApi = {
+  rank: ({ trend, candidates, force }) =>
+    request('/api/relations', { method: 'POST', body: JSON.stringify({ trend, candidates, force }) }),
+};
+
 export const chatApi = {
   send: ({ messages, system, context }) =>
     request('/api/chat', { method: 'POST', body: JSON.stringify({ messages, system, context }) }),

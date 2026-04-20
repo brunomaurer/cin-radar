@@ -1,14 +1,38 @@
 // Steckbrief — Trend detail page
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Icon, BarMeter, StageBadge, DimensionDot } from './ui.jsx';
 import { EditableBar } from './trends.jsx';
+import { relationsApi } from './api.js';
 
-export const TrendDetail = ({ t, data, trendId, onBack, onUpdate }) => {
+export const TrendDetail = ({ t, data, trendId, onBack, onUpdate, onOpenTrend }) => {
   const trend = data.trends.find(x => x.id === trendId) || data.trends[0];
   const [tab, setTab] = useState("overview");
   const signals = data.signals.filter(s => s.trendId === trend.id);
-  const related = data.trends.filter(x => x.dim === trend.dim && x.id !== trend.id).slice(0, 4);
   const projects = data.projects.filter(p => p.trends.includes(trend.id));
+
+  // AI-ranked related trends
+  const [relInfo, setRelInfo] = useState({ loading: true, error: null, items: [] });
+  useEffect(() => {
+    let cancel = false;
+    setRelInfo({ loading: true, error: null, items: [] });
+    const candidates = data.trends
+      .filter(x => x.id !== trend.id)
+      .map(x => ({ id: x.id, title: x.title, dim: x.dim, tags: x.tags || [], summary: x.summary || '' }));
+    relationsApi.rank({
+      trend: { id: trend.id, title: trend.title, dim: trend.dim, tags: trend.tags || [], summary: trend.summary || '' },
+      candidates,
+    })
+      .then(r => { if (!cancel) setRelInfo({ loading: false, error: null, items: r.related || [] }); })
+      .catch(e => { if (!cancel) setRelInfo({ loading: false, error: e.message, items: [] }); });
+    return () => { cancel = true; };
+  }, [trend.id]);
+
+  const related = relInfo.items
+    .map(r => {
+      const t = data.trends.find(x => x.id === r.id);
+      return t ? { ...t, score: r.score, reason: r.reason } : null;
+    })
+    .filter(Boolean);
 
   const tabs = [
     { id: "overview", label: t("overview") },
@@ -89,7 +113,7 @@ export const TrendDetail = ({ t, data, trendId, onBack, onUpdate }) => {
         {tab === "overview" && <OverviewTab trend={trend} t={t} signals={signals} related={related} projects={projects}/>}
         {tab === "evidence" && <EvidenceTab signals={signals}/>}
         {tab === "implications" && <ImplicationsTab/>}
-        {tab === "related" && <RelatedTab related={related} onBack={onBack}/>}
+        {tab === "related" && <RelatedTab related={related} loading={relInfo.loading} onOpenTrend={onOpenTrend}/>}
         {tab === "history" && <HistoryTab trend={trend}/>}
       </div>
     </div>
@@ -187,12 +211,22 @@ const OverviewTab = ({ trend, t, signals, related, projects }) => (
       </div>
 
       <div className="card" style={{ padding: 16 }}>
-        <div style={{ fontSize: 11, color: "var(--fg-3)", textTransform: "uppercase", letterSpacing: 0.8, marginBottom: 12 }}>{t("related")}</div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 10 }}>
+          <span style={{ fontSize: 11, color: "var(--fg-3)", textTransform: "uppercase", letterSpacing: 0.8 }}>{t("related")}</span>
+          <span className="chip ai mono" style={{ fontSize: 10 }}><Icon name="sparkles" size={10}/>AI</span>
+        </div>
+        {relInfo.loading && <div style={{ fontSize: 12, color: "var(--fg-3)", padding: "8px 0" }}>Analysiere Ähnlichkeiten…</div>}
+        {!relInfo.loading && related.length === 0 && <div style={{ fontSize: 12, color: "var(--fg-3)", padding: "8px 0" }}>Keine thematisch nahen Trends gefunden.</div>}
         {related.map(r => (
-          <div key={r.id} style={{ padding: "8px 0", borderBottom: "1px solid var(--line-1)", display: "flex", alignItems: "center", gap: 8 }}>
-            <DimensionDot dim={r.dim}/>
-            <span style={{ fontSize: 12.5, color: "var(--fg-1)", flex: 1 }}>{r.title}</span>
-            <span className="mono" style={{ fontSize: 10.5, color: "var(--fg-3)" }}>{r.impact}</span>
+          <div key={r.id}
+               onClick={() => onOpenTrend?.(r.id)}
+               style={{ padding: "10px 0", borderBottom: "1px solid var(--line-1)", cursor: "pointer" }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+              <DimensionDot dim={r.dim}/>
+              <span style={{ fontSize: 12.5, color: "var(--fg-1)", flex: 1 }}>{r.title}</span>
+              <span className="mono" style={{ fontSize: 10.5, color: "#34D399" }}>{Math.round((r.score || 0) * 100)}%</span>
+            </div>
+            {r.reason && <div style={{ fontSize: 11, color: "var(--fg-3)", marginTop: 4, lineHeight: 1.4, paddingLeft: 14 }}>{r.reason}</div>}
           </div>
         ))}
       </div>
@@ -303,21 +337,33 @@ const ImplicationsTab = () => (
   </div>
 );
 
-const RelatedTab = ({ related }) => (
-  <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(280px, 1fr))", gap: 12 }}>
-    {related.map(r => (
-      <div key={r.id} className="card" style={{ padding: 14 }}>
-        <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 8 }}>
-          <DimensionDot dim={r.dim}/>
-          <span className="mono" style={{ color: "var(--fg-3)", fontSize: 10.5 }}>#{r.id}</span>
-          <div style={{ flex: 1 }}/>
-          <StageBadge stage={r.stage}/>
-        </div>
-        <div style={{ color: "var(--fg-0)", fontWeight: 500 }}>{r.title}</div>
+const RelatedTab = ({ related, loading, onOpenTrend }) => {
+  if (loading) return <div style={{ padding: 40, textAlign: "center", color: "var(--fg-3)", fontSize: 12 }}>Claude analysiert Ähnlichkeiten…</div>;
+  if (related.length === 0) return <div style={{ padding: 40, textAlign: "center", color: "var(--fg-3)", fontSize: 12 }}>Keine thematisch nahen Trends gefunden.</div>;
+  return (
+    <div>
+      <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 12, fontSize: 12, color: "var(--fg-2)" }}>
+        <span className="chip ai mono" style={{ fontSize: 10 }}><Icon name="sparkles" size={10}/>AI-ranked</span>
+        <span>Thematische Nähe nach Titel, Dimension, Tags und Summary. Kandidaten kommen aus deinem Trend-Pool.</span>
       </div>
-    ))}
-  </div>
-);
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(320px, 1fr))", gap: 12 }}>
+        {related.map(r => (
+          <div key={r.id} className="card" style={{ padding: 16, cursor: "pointer" }} onClick={() => onOpenTrend?.(r.id)}>
+            <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 10 }}>
+              <DimensionDot dim={r.dim}/>
+              <span className="mono" style={{ color: "var(--fg-3)", fontSize: 10.5 }}>#{r.id}</span>
+              <div style={{ flex: 1 }}/>
+              <span className="mono" style={{ fontSize: 11, color: "#34D399" }}>{Math.round((r.score || 0) * 100)}%</span>
+              <StageBadge stage={r.stage}/>
+            </div>
+            <div style={{ color: "var(--fg-0)", fontWeight: 500, marginBottom: 8 }}>{r.title}</div>
+            {r.reason && <div style={{ fontSize: 12, color: "var(--fg-2)", lineHeight: 1.5, padding: "8px 10px", background: "var(--ai-soft)", borderRadius: 6, borderLeft: "2px solid var(--ai)" }}>{r.reason}</div>}
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+};
 
 const HistoryTab = ({ trend }) => (
   <div className="card" style={{ padding: 16 }}>
