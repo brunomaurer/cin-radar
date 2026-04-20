@@ -198,7 +198,7 @@ const OverviewTab = ({ trend, t, signals, related }) => (
     <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
       <div className="card" style={{ padding: 16 }}>
         <div style={{ fontSize: 11, color: "var(--fg-3)", textTransform: "uppercase", letterSpacing: 0.8, marginBottom: 12 }}>Metadata</div>
-        <Field label={t("owner")} value={<span style={{ display: "inline-flex", gap: 6, alignItems: "center" }}><span style={{ width: 18, height: 18, borderRadius: 999, background: "#3B82F6", color: "white", fontSize: 10, display: "grid", placeItems: "center", fontWeight: 600 }}>{trend.owner.split(" ").map(x => x[0]).join("")}</span>{trend.owner}</span>}/>
+        <Field label={t("owner")} value={<span style={{ display: "inline-flex", gap: 6, alignItems: "center" }}><span style={{ width: 18, height: 18, borderRadius: 999, background: "#3B82F6", color: "white", fontSize: 10, display: "grid", placeItems: "center", fontWeight: 600 }}>{(trend.owner || '?').split(" ").map(x => x[0]).join("")}</span>{trend.owner || '—'}</span>}/>
         <Field label="Dimension" value={<span style={{ display: "inline-flex", gap: 6, alignItems: "center" }}><DimensionDot dim={trend.dim}/>{trend.dim}</span>}/>
         <Field label={t("horizon")} value={<span className="mono">{trend.horizon}</span>}/>
         <Field label={t("stage")} value={<StageBadge stage={trend.stage}/>}/>
