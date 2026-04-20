@@ -172,13 +172,13 @@ export const NewTrendDialog = ({ open, onClose, onCreated, prefill, dimensions, 
           <div style={{ marginBottom: 14 }}>
             <div style={{ marginTop: 8 }}>
               <label style={{ fontSize: 11, color: 'var(--fg-3)', display: 'block', marginBottom: 4 }}>Bild</label>
-              {imageUrl && <img src={imageUrl} alt="" style={{ width: '100%', height: 120, objectFit: 'cover', borderRadius: 6, marginBottom: 8 }} />}
+              {imageUrl && <img src={imageUrl} alt="" style={{ width: 150, height: 200, objectFit: 'cover', borderRadius: 6, marginBottom: 8 }} />}
               <div style={{ display: 'flex', gap: 8 }}>
                 <input className="input" placeholder="Bild-URL" value={imageUrl} onChange={e => setImageUrl(e.target.value)} style={{ flex: 1 }} />
                 <button className="btn ai sm" type="button" disabled={imgLoading} onClick={async () => {
                   setImgLoading(true);
                   try {
-                    const r = await fetch('/api/generate-image', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ title: form.title, tags: form.tags ? form.tags.split(',').map(t => t.trim()) : [] }) });
+                    const r = await fetch('/api/generate-image', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ title: form.title, dim: form.dim, summary: form.summary }) });
                     const data = await r.json();
                     if (data.url) setImageUrl(data.url);
                   } catch {} finally { setImgLoading(false); }

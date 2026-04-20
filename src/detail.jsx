@@ -54,7 +54,9 @@ export const TrendDetail = ({ t, data, trendId, onBack, onUpdate, onOpenTrend })
         </div>
 
         {trend.imageUrl && (
-          <img src={trend.imageUrl} alt="" style={{ width: '100%', height: 180, objectFit: 'cover', borderRadius: 8, marginBottom: 12 }} />
+          <div style={{ float: 'right', marginLeft: 16, marginBottom: 8 }}>
+            <img src={trend.imageUrl} alt="" style={{ width: 150, height: 200, objectFit: 'cover', borderRadius: 8 }} />
+          </div>
         )}
 
         <div style={{ display: "flex", alignItems: "flex-start", gap: 16 }}>

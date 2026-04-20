@@ -229,7 +229,7 @@ export const Explorer = ({ t, data, search, onOpenTrend, campaigns }) => {
           {rows.map(r => (
             <div key={r.id} className="card" style={{ padding: 14, cursor: "pointer" }} onClick={() => onOpenTrend(r.id)}>
               {r.imageUrl && (
-                <img src={r.imageUrl} alt="" style={{ width: 'calc(100% + 28px)', height: 100, objectFit: 'cover', borderRadius: '6px 6px 0 0', margin: '-12px -14px 8px -14px' }} />
+                <img src={r.imageUrl} alt="" style={{ width: 80, height: 107, objectFit: 'cover', borderRadius: 6, float: 'right', marginLeft: 10 }} />
               )}
               <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 8 }}>
                 <DimensionDot dim={r.dim}/>
@@ -254,9 +254,9 @@ export const Explorer = ({ t, data, search, onOpenTrend, campaigns }) => {
           {rows.map(tr => (
             <div key={tr.id} className="card" style={{ padding: 0, cursor: 'pointer', overflow: 'hidden' }} onClick={() => onOpenTrend(tr.id)}>
               {tr.imageUrl ? (
-                <img src={tr.imageUrl} alt="" style={{ width: '100%', height: 140, objectFit: 'cover' }} />
+                <img src={tr.imageUrl} alt="" style={{ width: '100%', height: 200, objectFit: 'cover' }} />
               ) : (
-                <div style={{ width: '100%', height: 140, background: 'var(--bg-3)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--fg-4)', fontSize: 32 }}>
+                <div style={{ width: '100%', height: 200, background: 'var(--bg-3)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--fg-4)', fontSize: 32 }}>
                   ◻
                 </div>
               )}
