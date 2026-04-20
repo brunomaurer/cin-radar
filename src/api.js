@@ -28,6 +28,22 @@ export const trendsApi = {
   remove: (id) => request('/api/trends?id=' + encodeURIComponent(id), { method: 'DELETE' }),
 };
 
+export const signalsApi = {
+  list: () => request('/api/signals'),
+  create: (body) => request('/api/signals', { method: 'POST', body: JSON.stringify(body) }),
+  get: (id) => request('/api/signals?id=' + encodeURIComponent(id)),
+  update: (id, patch) => request('/api/signals?id=' + encodeURIComponent(id), { method: 'PUT', body: JSON.stringify(patch) }),
+  remove: (id) => request('/api/signals?id=' + encodeURIComponent(id), { method: 'DELETE' }),
+};
+
+export const campaignsApi = {
+  list: () => request('/api/campaigns'),
+  create: (body) => request('/api/campaigns', { method: 'POST', body: JSON.stringify(body) }),
+  get: (id) => request('/api/campaigns?id=' + encodeURIComponent(id)),
+  update: (id, patch) => request('/api/campaigns?id=' + encodeURIComponent(id), { method: 'PUT', body: JSON.stringify(patch) }),
+  remove: (id) => request('/api/campaigns?id=' + encodeURIComponent(id), { method: 'DELETE' }),
+};
+
 export const relationsApi = {
   rank: ({ trend, candidates, force }) =>
     request('/api/relations', { method: 'POST', body: JSON.stringify({ trend, candidates, force }) }),
