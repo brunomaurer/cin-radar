@@ -144,10 +144,13 @@ export const ConceptWorkspace = ({ id, trends, onBack }) => {
     (async () => {
       try {
         const r = await conceptsApi.get(id);
-        if (!cancelled) {
-          setConcept(r.concept);
-          if (r.concept.artefacts && Object.keys(r.concept.artefacts).length > 0) setMode('artefacts');
+        if (cancelled) return;
+        if (!r || !r.concept) {
+          setError('Antwort ohne concept-Feld: ' + JSON.stringify(r)?.slice(0, 200));
+          return;
         }
+        setConcept(r.concept);
+        if (r.concept.artefacts && Object.keys(r.concept.artefacts).length > 0) setMode('artefacts');
       } catch (e) {
         if (!cancelled) setError(e.message);
       }

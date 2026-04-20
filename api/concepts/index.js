@@ -1,5 +1,5 @@
 import { nanoid } from 'nanoid';
-import { kv, readBody, fail, envCheck } from './_shared.js';
+import { kv, readBody, fail, envCheck } from '../_shared.js';
 
 const INDEX_KEY = 'concepts:index';
 const ITEM_KEY = (id) => `concept:${id}`;
