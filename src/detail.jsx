@@ -120,7 +120,7 @@ export const TrendDetail = ({ t, data, trendId, onBack, onUpdate, onOpenTrend })
       </div>
 
       <div className="scroll" style={{ flex: 1, overflow: "auto", padding: 20 }}>
-        {tab === "overview" && <OverviewTab trend={trend} t={t} signals={signals} related={related}/>}
+        {tab === "overview" && <OverviewTab trend={trend} t={t} signals={signals} related={related} relLoading={relInfo.loading}/>}
         {tab === "evidence" && <EvidenceTab signals={signals}/>}
         {tab === "implications" && <ImplicationsTab/>}
         {tab === "related" && <RelatedTab related={related} loading={relInfo.loading} onOpenTrend={onOpenTrend}/>}
@@ -130,7 +130,7 @@ export const TrendDetail = ({ t, data, trendId, onBack, onUpdate, onOpenTrend })
   );
 };
 
-const OverviewTab = ({ trend, t, signals, related }) => (
+const OverviewTab = ({ trend, t, signals, related, relLoading }) => (
   <div style={{ display: "grid", gridTemplateColumns: "1fr 320px", gap: 16 }}>
     <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
       <div className="card" style={{ padding: 16, background: "linear-gradient(180deg, rgba(167,139,250,0.07), transparent 80%)", borderColor: "rgba(167,139,250,0.25)" }}>
@@ -210,8 +210,8 @@ const OverviewTab = ({ trend, t, signals, related }) => (
           <span style={{ fontSize: 11, color: "var(--fg-3)", textTransform: "uppercase", letterSpacing: 0.8 }}>{t("related")}</span>
           <span className="chip ai mono" style={{ fontSize: 10 }}><Icon name="sparkles" size={10}/>AI</span>
         </div>
-        {relInfo.loading && <div style={{ fontSize: 12, color: "var(--fg-3)", padding: "8px 0" }}>Analysiere Ähnlichkeiten…</div>}
-        {!relInfo.loading && related.length === 0 && <div style={{ fontSize: 12, color: "var(--fg-3)", padding: "8px 0" }}>Keine thematisch nahen Trends gefunden.</div>}
+        {relLoading && <div style={{ fontSize: 12, color: "var(--fg-3)", padding: "8px 0" }}>Analysiere Ähnlichkeiten…</div>}
+        {!relLoading && related.length === 0 && <div style={{ fontSize: 12, color: "var(--fg-3)", padding: "8px 0" }}>Keine thematisch nahen Trends gefunden.</div>}
         {related.map(r => (
           <div key={r.id}
                onClick={() => onOpenTrend?.(r.id)}
