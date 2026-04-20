@@ -4,10 +4,9 @@ import { conceptsApi, chatApi, generateApi, ARTEFACT_META, ARTEFACT_IDS } from '
 
 // ========== List view ==========
 
-export const ConceptList = ({ onOpen, onCreate }) => {
+export const ConceptList = ({ onOpen, onGoToRate }) => {
   const [concepts, setConcepts] = useState(null);
   const [error, setError] = useState(null);
-  const [creating, setCreating] = useState(false);
 
   const load = async () => {
     setError(null);
@@ -21,17 +20,6 @@ export const ConceptList = ({ onOpen, onCreate }) => {
   };
 
   useEffect(() => { load(); }, []);
-
-  const create = async () => {
-    setCreating(true);
-    try {
-      const r = await conceptsApi.create({ title: 'Neues MVP-Konzept' });
-      onOpen(r.concept.id);
-    } catch (e) {
-      setError(e.message);
-      setCreating(false);
-    }
-  };
 
   const remove = async (id) => {
     if (!confirm('Konzept wirklich löschen?')) return;
@@ -50,13 +38,11 @@ export const ConceptList = ({ onOpen, onCreate }) => {
           <div style={{ fontSize: 11, color: 'var(--fg-3)', textTransform: 'uppercase', letterSpacing: 1 }}>MVP-Werkstatt</div>
           <h1 style={{ margin: '4px 0 0', fontSize: 24, fontWeight: 600, color: 'var(--fg-0)' }}>Initiativen</h1>
           <p style={{ margin: '6px 0 0', color: 'var(--fg-2)', fontSize: 13.5, maxWidth: 640, lineHeight: 1.55 }}>
-            Aus einer Idee einen schlanken MVP machen. Brief ausfüllen, sechs MD-Artefakte generieren lassen
-            (CLAUDE.md, PRD, Tech-Spec, Deck, Prompt, Email), mit dem MVP-Coach diskutieren.
+            Initiativen entstehen aus priorisierten Trends. In der <b>Rate</b>-Stage des Prozesses mit <i>Launch</i> erzeugen —
+            dann wird hier ein MVP-Konzept angelegt: Brief, sechs generierte Artefakte (CLAUDE.md, PRD, Tech-Spec, Deck,
+            Prompt, Email) und der MVP-Coach zum Diskutieren.
           </p>
         </div>
-        <button className="btn ai" onClick={create} disabled={creating}>
-          <Icon name="sparkles" size={14}/> {creating ? 'Erstelle…' : 'Neues Konzept'}
-        </button>
       </div>
 
       {error && (
@@ -76,16 +62,16 @@ export const ConceptList = ({ onOpen, onCreate }) => {
 
       {concepts && concepts.length === 0 && !error && (
         <div className="card" style={{ padding: 40, textAlign: 'center' }}>
-          <div style={{ width: 56, height: 56, borderRadius: 14, background: 'linear-gradient(135deg,#A78BFA,#3B82F6)', display: 'grid', placeItems: 'center', margin: '0 auto 16px' }}>
-            <Icon name="sparkles" size={26}/>
+          <div style={{ width: 56, height: 56, borderRadius: 14, background: 'linear-gradient(135deg,#34D399,#60A5FA)', display: 'grid', placeItems: 'center', margin: '0 auto 16px' }}>
+            <Icon name="bolt" size={26}/>
           </div>
-          <h2 style={{ margin: '0 0 8px', color: 'var(--fg-0)', fontSize: 18, fontWeight: 600 }}>Noch keine Konzepte</h2>
+          <h2 style={{ margin: '0 0 8px', color: 'var(--fg-0)', fontSize: 18, fontWeight: 600 }}>Noch keine Initiativen</h2>
           <p style={{ color: 'var(--fg-2)', fontSize: 13.5, lineHeight: 1.6, marginBottom: 20, maxWidth: 480, marginLeft: 'auto', marginRight: 'auto' }}>
-            Starte mit einer Idee. Du beschreibst Problem, Zielgruppe und Metrik — der MVP-Coach macht daraus sechs konkrete Artefakte
-            für Claude Code, dein Team und die Stakeholder.
+            Initiativen entstehen aus priorisierten Trends. Geh in den Prozess, dort in die <b>Rate</b>-Stage,
+            und klick bei einem Trend auf <b>Launch</b> — dann wird hier ein MVP-Konzept angelegt.
           </p>
-          <button className="btn ai" onClick={create} disabled={creating}>
-            <Icon name="sparkles" size={14}/> {creating ? 'Erstelle…' : 'Erstes Konzept anlegen'}
+          <button className="btn" onClick={onGoToRate}>
+            <Icon name="arrowRight" size={14}/> Zur Rate-Stage
           </button>
         </div>
       )}

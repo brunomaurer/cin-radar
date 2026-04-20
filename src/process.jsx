@@ -1,16 +1,27 @@
 // Process pipeline — Scout -> Cluster -> Validate -> Rate -> Initiative
-import { Fragment, useState } from 'react';
+import { Fragment, useState, useEffect } from 'react';
 import { Icon, BarMeter, DimensionDot } from './ui.jsx';
 import { Radar, Matrix, Timeline, Funnel } from './viz.jsx';
 import { useLocalStorage } from './useLocalStorage.js';
+import { conceptsApi } from './api.js';
 
-export const ProcessPipeline = ({ data, campaignsData, stage, setStage, onOpenCampaign, onOpenCluster, onOpenCapture, onOpenInitiative }) => {
+export const ProcessPipeline = ({ data, campaignsData, stage, setStage, onOpenCampaign, onOpenCluster, onOpenCapture, onOpenInitiative, onLaunchInitiative }) => {
+  const [initiatives, setInitiatives] = useState(null);
+  useEffect(() => {
+    let cancel = false;
+    conceptsApi.list()
+      .then(r => { if (!cancel) setInitiatives(r.concepts || []); })
+      .catch(() => { if (!cancel) setInitiatives([]); });
+    return () => { cancel = true; };
+  }, []);
+
+  const initiativeCount = initiatives == null ? '…' : initiatives.length;
   const stages = [
     { k: "scout",      l: "Scout",      n: 1840, c: "#60A5FA", sub: "Capture from the world" },
     { k: "cluster",    l: "Cluster",    n: 204,  c: "#A78BFA", sub: "AI groups similar signals" },
     { k: "validate",   l: "Validate",   n: 48,   c: "#F472B6", sub: "Human confirms signal" },
     { k: "rate",       l: "Rate",       n: 12,   c: "#FBBF24", sub: "Business + AI market rate" },
-    { k: "initiative", l: "Initiative", n: 4,    c: "#34D399", sub: "MVP, spec, build" },
+    { k: "initiative", l: "Initiative", n: initiativeCount, c: "#34D399", sub: "MVP, spec, build" },
   ];
   const [view, setView] = useState("pipeline");
 
@@ -54,14 +65,14 @@ export const ProcessPipeline = ({ data, campaignsData, stage, setStage, onOpenCa
 
       <div className="scroll" style={{ flex: 1, overflow: "auto" }}>
         {view === "board" ? (
-          <PipelineBoard data={data} campaignsData={campaignsData} stages={stages} onOpenInitiative={onOpenInitiative} onOpenCluster={onOpenCluster}/>
+          <PipelineBoard data={data} campaignsData={campaignsData} stages={stages} initiatives={initiatives} onOpenInitiative={onOpenInitiative} onOpenCluster={onOpenCluster}/>
         ) : (
           <Fragment>
             {stage === "scout" && <ScoutStage campaigns={campaignsData.campaigns} onOpenCampaign={onOpenCampaign} onOpenCapture={onOpenCapture}/>}
             {stage === "cluster" && <ClusterStage clusters={campaignsData.clusters} ideas={campaignsData.ideas} onOpenCluster={onOpenCluster}/>}
             {stage === "validate" && <ValidateStage trends={data.trends}/>}
-            {stage === "rate" && <RateStage trends={data.trends}/>}
-            {stage === "initiative" && <InitiativeStage projects={data.projects} trends={data.trends} onOpen={onOpenInitiative}/>}
+            {stage === "rate" && <RateStage trends={data.trends} onLaunch={onLaunchInitiative}/>}
+            {stage === "initiative" && <InitiativeStage initiatives={initiatives} trends={data.trends} onOpen={onOpenInitiative} onGoToRate={() => setStage('rate')}/>}
           </Fragment>
         )}
       </div>
@@ -156,11 +167,11 @@ const ValidateStage = ({ trends }) => (
   </div>
 );
 
-const RateStage = ({ trends }) => {
+const RateStage = ({ trends, onLaunch }) => {
   const top = trends.slice(0, 5);
   return (
     <div style={{ padding: 20 }}>
-      <div style={{ fontSize: 12.5, color: "var(--fg-2)", marginBottom: 14 }}>Validated trends are rated: your team estimates business fit, AI estimates market momentum from real signal data. The product makes the priority list.</div>
+      <div style={{ fontSize: 12.5, color: "var(--fg-2)", marginBottom: 14 }}>Validated trends are rated: your team estimates business fit, AI estimates market momentum from real signal data. "Launch" erzeugt eine Initiative mit vorgefülltem MVP-Brief.</div>
       <div className="card" style={{ overflow: "hidden" }}>
         <div style={{ display: "grid", gridTemplateColumns: "48px 1fr 140px 140px 120px 100px", padding: "10px 16px", borderBottom: "1px solid var(--line-1)", fontSize: 11, color: "var(--fg-3)", textTransform: "uppercase", letterSpacing: 0.5 }}>
           <span>Rank</span><span>Trend</span><span>Team fit</span><span>AI market rate</span><span>Composite</span><span/>
@@ -189,7 +200,7 @@ const RateStage = ({ trends }) => {
                 <BarMeter value={composite} color="#34D399"/>
                 <span className="mono" style={{ fontSize: 11, color: "#34D399", width: 28, textAlign: "right" }}>{composite}</span>
               </div>
-              <button className="btn primary sm" style={{ height: 26 }}><Icon name="bolt" size={11}/> Launch</button>
+              <button className="btn primary sm" style={{ height: 26 }} onClick={() => onLaunch?.(t)}><Icon name="bolt" size={11}/> Launch</button>
             </div>
           );
         })}
@@ -198,39 +209,84 @@ const RateStage = ({ trends }) => {
   );
 };
 
-const InitiativeStage = ({ projects, trends, onOpen }) => (
-  <div style={{ padding: 20 }}>
-    <div style={{ fontSize: 12.5, color: "var(--fg-2)", marginBottom: 14 }}>Rated trends become initiatives — concrete projects with owners, milestones, and AI-assisted specs.</div>
-    <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(320px, 1fr))", gap: 12 }}>
-      {projects.map(p => {
-        const trend = trends.find(x => x.id === p.trends[0]);
-        return (
-          <div key={p.id} className="card" style={{ padding: 16, cursor: "pointer" }} onClick={() => onOpen(p.id)}>
-            <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 10 }}>
-              <span className="chip">{p.stage}</span>
-              <div style={{ flex: 1 }}/>
-              <span className="chip ai mono" style={{ fontSize: 10 }}><Icon name="sparkles" size={10}/>AI co-spec</span>
-            </div>
-            <div style={{ fontSize: 14, fontWeight: 500, color: "var(--fg-0)", marginBottom: 10 }}>{p.title}</div>
-            {trend && <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 12 }}><DimensionDot dim={trend.dim}/><span style={{ fontSize: 11.5, color: "var(--fg-2)" }}>from trend: {trend.title}</span></div>}
-            <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-              <BarMeter value={p.progress} color="var(--accent)"/>
-              <span className="mono" style={{ fontSize: 11, color: "var(--fg-2)" }}>{p.progress}%</span>
-            </div>
+const InitiativeStage = ({ initiatives, trends, onOpen, onGoToRate }) => {
+  if (initiatives == null) {
+    return <div style={{ padding: 40, textAlign: "center", color: "var(--fg-3)", fontSize: 12 }}>Lade Initiativen…</div>;
+  }
+  if (initiatives.length === 0) {
+    return (
+      <div style={{ padding: 40, display: "grid", placeItems: "center" }}>
+        <div style={{ maxWidth: 520, textAlign: "center" }}>
+          <div style={{ width: 52, height: 52, borderRadius: 12, background: "linear-gradient(135deg,#34D399,#60A5FA)", display: "grid", placeItems: "center", margin: "0 auto 14px" }}>
+            <Icon name="bolt" size={22}/>
           </div>
-        );
-      })}
+          <h2 style={{ margin: "0 0 8px", color: "var(--fg-0)", fontSize: 17, fontWeight: 600 }}>Noch keine Initiativen</h2>
+          <p style={{ color: "var(--fg-2)", fontSize: 13, lineHeight: 1.6, marginBottom: 16 }}>
+            Eine Initiative entsteht, indem du in der Stage <b>Rate</b> auf einen priorisierten Trend "Launch" klickst.
+            Dann wird ein MVP-Konzept mit vorgefülltem Brief angelegt.
+          </p>
+          <button className="btn" onClick={onGoToRate}><Icon name="arrowLeft" size={12}/> Zur Rate-Stage</button>
+        </div>
+      </div>
+    );
+  }
+  return (
+    <div style={{ padding: 20 }}>
+      <div style={{ fontSize: 12.5, color: "var(--fg-2)", marginBottom: 14 }}>
+        Initiativen, die aus einem priorisierten Trend hervorgegangen sind. Click → MVP-Werkstatt (Brief, Artefakte, AI-Coach).
+      </div>
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(320px, 1fr))", gap: 12 }}>
+        {initiatives.map(c => {
+          const trend = c.trendId ? trends.find(x => x.id === c.trendId) : null;
+          return (
+            <div key={c.id} className="card" style={{ padding: 16, cursor: "pointer" }} onClick={() => onOpen(c.id)}>
+              <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 10 }}>
+                {c.hasArtefacts
+                  ? <span className="chip ai mono" style={{ fontSize: 10 }}><Icon name="sparkles" size={10}/> Artefakte bereit</span>
+                  : <span className="chip mono" style={{ fontSize: 10 }}>Draft</span>}
+                <div style={{ flex: 1 }}/>
+                <span className="mono" style={{ fontSize: 10, color: "var(--fg-3)" }}>{formatAge(c.updatedAt)}</span>
+              </div>
+              <div style={{ fontSize: 14, fontWeight: 500, color: "var(--fg-0)", marginBottom: 10 }}>{c.title || "Ohne Titel"}</div>
+              {trend && (
+                <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                  <DimensionDot dim={trend.dim}/>
+                  <span style={{ fontSize: 11.5, color: "var(--fg-2)" }}>aus Trend: {trend.title}</span>
+                </div>
+              )}
+            </div>
+          );
+        })}
+      </div>
     </div>
-  </div>
-);
+  );
+};
 
-const PipelineBoard = ({ data, campaignsData, stages, onOpenInitiative, onOpenCluster }) => {
+function formatAge(iso) {
+  if (!iso) return '—';
+  const ms = Date.now() - new Date(iso).getTime();
+  if (ms < 60_000) return 'eben';
+  if (ms < 3600_000) return Math.floor(ms/60_000) + ' min';
+  if (ms < 86_400_000) return Math.floor(ms/3_600_000) + ' h';
+  if (ms < 30 * 86_400_000) return Math.floor(ms/86_400_000) + ' d';
+  return new Date(iso).toLocaleDateString('de-CH');
+}
+
+const PipelineBoard = ({ data, campaignsData, stages, initiatives, onOpenInitiative, onOpenCluster }) => {
+  const initiativeCards = (initiatives || []).map(c => ({
+    id: "i" + c.id,
+    origin: "initiative",
+    title: c.title || "Ohne Titel",
+    sub: (c.hasArtefacts ? "Artefakte bereit" : "Draft"),
+    color: "#34D399",
+    onClick: () => onOpenInitiative(c.id),
+  }));
   const allCards = [
     ...campaignsData.ideas.slice(0, 8).map(i => ({ id: "s" + i.id, origin: "scout",      title: i.text,  sub: "signal · " + (i.source || "web"),                     color: "#60A5FA" })),
     ...campaignsData.clusters.slice(0, 6).map(cl => ({ id: "c" + cl.id, origin: "cluster", title: cl.label, sub: `${cl.confidence*100|0}% conf · AI cluster`,           color: cl.color, ai: true, onClick: () => onOpenCluster(cl.id) })),
     ...data.trends.slice(0, 4).map(t => ({ id: "v" + t.id, origin: "validate", title: t.title, sub: t.dim + " · needs owner",                                         color: "#F472B6" })),
     ...data.trends.slice(4, 7).map(t => ({ id: "r" + t.id, origin: "rate",     title: t.title, sub: `team ${60+(t.impact*3)%30} · AI ${Math.round(t.impact*0.9)}`,    color: "#FBBF24" })),
-    ...data.projects.slice(0, 4).map(p => ({ id: "i" + p.id, origin: "initiative", title: p.title, sub: p.stage + " · " + p.progress + "%",                           color: "#34D399", onClick: () => onOpenInitiative(p.id) })),
+    ...initiativeCards,
   ];
   const cardsById = Object.fromEntries(allCards.map(c => [c.id, c]));
 
