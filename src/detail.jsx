@@ -7,7 +7,20 @@ import { relationsApi } from './api.js';
 export const TrendDetail = ({ t, data, trendId, onBack, onUpdate, onOpenTrend }) => {
   const trend = data.trends.find(x => x.id === trendId) || data.trends[0];
   const [tab, setTab] = useState("overview");
+  const [editing, setEditing] = useState(false);
+  const [editForm, setEditForm] = useState({});
   const signals = data.signals.filter(s => s.trendId === trend.id);
+
+  const startEdit = () => {
+    setEditForm({ title: trend.title, summary: trend.summary || '', tags: (trend.tags || []).join(', '), dim: trend.dim, horizon: trend.horizon, stage: trend.stage, owner: trend.owner || '' });
+    setEditing(true);
+  };
+  const cancelEdit = () => setEditing(false);
+  const saveEdit = () => {
+    onUpdate(trend.id, { ...editForm, tags: editForm.tags.split(',').map(t => t.trim()).filter(Boolean) });
+    setEditing(false);
+  };
+  const ef = (k, v) => setEditForm(f => ({ ...f, [k]: v }));
 
   // AI-ranked related trends
   const [relInfo, setRelInfo] = useState({ loading: true, error: null, items: [] });
@@ -55,26 +68,51 @@ export const TrendDetail = ({ t, data, trendId, onBack, onUpdate, onOpenTrend })
 
         <div style={{ display: "flex", alignItems: "flex-start", gap: 16 }}>
           <div style={{ flex: 1 }}>
-            <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 6 }}>
-              <StageBadge stage={trend.stage}/>
-              <span className="chip mono">{trend.horizon}</span>
-              {trend.ai > 0.9 && <span className="chip ai"><Icon name="sparkles" size={10}/> AI enriched</span>}
-              {(trend.tags || []).map(tag => <span key={tag} className="chip"><Icon name="hash" size={10}/>{tag}</span>)}
-            </div>
-            <h1 style={{ margin: 0, color: "var(--fg-0)", fontSize: 22, fontWeight: 600, letterSpacing: -0.2 }}>{trend.title}</h1>
-            {trend.summary && <p style={{ margin: "8px 0 0", color: "var(--fg-2)", fontSize: 13.5, maxWidth: 820, lineHeight: 1.55 }}>{trend.summary}</p>}
+            {editing ? (
+              <>
+                <input className="input" value={editForm.title} onChange={e => ef('title', e.target.value)}
+                  style={{ width: '100%', fontSize: 20, fontWeight: 600, height: 40, marginBottom: 8 }} />
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr 1fr', gap: 8, marginBottom: 8 }}>
+                  <select className="input" value={editForm.dim} onChange={e => ef('dim', e.target.value)} style={{ fontSize: 12 }}>
+                    {data.dimensions.map(d => <option key={d} value={d}>{d}</option>)}
+                  </select>
+                  <select className="input" value={editForm.horizon} onChange={e => ef('horizon', e.target.value)} style={{ fontSize: 12 }}>
+                    {data.horizons.map(h => <option key={h} value={h}>{h}</option>)}
+                  </select>
+                  <select className="input" value={editForm.stage} onChange={e => ef('stage', e.target.value)} style={{ fontSize: 12 }}>
+                    {data.stages.map(s => <option key={s} value={s}>{s}</option>)}
+                  </select>
+                  <input className="input" value={editForm.owner} onChange={e => ef('owner', e.target.value)} placeholder="Owner" style={{ fontSize: 12 }} />
+                </div>
+                <input className="input" value={editForm.tags} onChange={e => ef('tags', e.target.value)} placeholder="Tags (kommagetrennt)" style={{ width: '100%', fontSize: 12, marginBottom: 8 }} />
+                <textarea className="input" value={editForm.summary} onChange={e => ef('summary', e.target.value)} rows={3}
+                  style={{ width: '100%', fontSize: 13, resize: 'vertical', fontFamily: 'inherit' }} placeholder="Zusammenfassung" />
+              </>
+            ) : (
+              <>
+                <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 6 }}>
+                  <StageBadge stage={trend.stage}/>
+                  <span className="chip mono">{trend.horizon}</span>
+                  {trend.ai > 0.9 && <span className="chip ai"><Icon name="sparkles" size={10}/> AI enriched</span>}
+                  {(trend.tags || []).map(tag => <span key={tag} className="chip"><Icon name="hash" size={10}/>{tag}</span>)}
+                </div>
+                <h1 style={{ margin: 0, color: "var(--fg-0)", fontSize: 22, fontWeight: 600, letterSpacing: -0.2 }}>{trend.title}</h1>
+                {trend.summary && <p style={{ margin: "8px 0 0", color: "var(--fg-2)", fontSize: 13.5, maxWidth: 820, lineHeight: 1.55 }}>{trend.summary}</p>}
+              </>
+            )}
           </div>
-          <div style={{ display: "flex", gap: 6 }}>
-            <button className="btn sm"><Icon name="star" size={13}/> Watch</button>
-            <button className="btn sm"><Icon name="link" size={13}/> Share</button>
-            <button
-              className={`btn sm${trend.subscribed ? ' ai' : ''}`}
-              onClick={() => onUpdate(trend.id, { subscribed: !trend.subscribed })}
-              style={{ fontSize: 11 }}
-            >
-              {trend.subscribed ? '✓ Subscribed' : '☆ Subscribe'}
-            </button>
-            <button className="btn primary sm"><Icon name="plus" size={13}/> Add to project</button>
+          <div style={{ display: "flex", gap: 6, flexShrink: 0 }}>
+            {editing ? (
+              <>
+                <button className="btn sm" onClick={cancelEdit}>Abbrechen</button>
+                <button className="btn primary sm" onClick={saveEdit}><Icon name="check" size={13}/> Speichern</button>
+              </>
+            ) : (
+              <>
+                <button className="btn sm" onClick={startEdit}><Icon name="edit" size={13}/> Bearbeiten</button>
+                <button className="btn sm"><Icon name="link" size={13}/> Share</button>
+              </>
+            )}
           </div>
         </div>
 
@@ -206,9 +244,16 @@ const OverviewTab = ({ trend, t, signals, related, relLoading, onUpdate }) => (
       </div>
 
       <div className="card" style={{ padding: 0 }}>
-        <div style={{ padding: "12px 16px", borderBottom: "1px solid var(--line-1)", display: "flex", alignItems: "center" }}>
+        <div style={{ padding: "12px 16px", borderBottom: "1px solid var(--line-1)", display: "flex", alignItems: "center", gap: 10 }}>
           <div style={{ fontWeight: 600, color: "var(--fg-0)", fontSize: 13 }}>Recent signals</div>
           <div style={{ flex: 1 }}/>
+          <label style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 11, color: trend.subscribed ? 'var(--ai)' : 'var(--fg-3)', cursor: 'pointer' }}>
+            <div onClick={() => onUpdate(trend.id, { subscribed: !trend.subscribed })}
+              style={{ width: 32, height: 18, borderRadius: 9, background: trend.subscribed ? 'var(--ai)' : 'var(--bg-3)', position: 'relative', cursor: 'pointer', transition: 'background .2s' }}>
+              <div style={{ width: 14, height: 14, borderRadius: 7, background: '#fff', position: 'absolute', top: 2, left: trend.subscribed ? 16 : 2, transition: 'left .2s' }}/>
+            </div>
+            Auto-Abo
+          </label>
           <a style={{ color: "var(--accent-2)", fontSize: 12 }}>View all →</a>
         </div>
         <div>
