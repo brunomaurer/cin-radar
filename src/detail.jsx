@@ -1,8 +1,9 @@
 // Steckbrief — Trend detail page
 import { useState } from 'react';
 import { Icon, BarMeter, StageBadge, DimensionDot } from './ui.jsx';
+import { EditableBar } from './trends.jsx';
 
-export const TrendDetail = ({ t, data, trendId, onBack }) => {
+export const TrendDetail = ({ t, data, trendId, onBack, onUpdate }) => {
   const trend = data.trends.find(x => x.id === trendId) || data.trends[0];
   const [tab, setTab] = useState("overview");
   const signals = data.signals.filter(s => s.trendId === trend.id);
@@ -49,19 +50,25 @@ export const TrendDetail = ({ t, data, trendId, onBack }) => {
 
         <div style={{ display: "grid", gridTemplateColumns: "repeat(5, 1fr)", gap: 12, marginTop: 16 }}>
           {[
-            { label: t("impact"), val: trend.impact, color: "var(--accent)" },
-            { label: t("novelty"), val: trend.novelty, color: "var(--ai)" },
-            { label: t("maturity"), val: trend.maturity, color: "#F59E0B" },
-            { label: t("signals"), val: trend.signals, raw: true, color: "var(--fg-2)" },
-            { label: t("sources"), val: trend.sources, raw: true, color: "var(--fg-2)" },
+            { key: "impact",   label: t("impact"),   val: trend.impact,   color: "var(--accent)", editable: true },
+            { key: "novelty",  label: t("novelty"),  val: trend.novelty,  color: "var(--ai)",     editable: true },
+            { key: "maturity", label: t("maturity"), val: trend.maturity, color: "#F59E0B",       editable: true },
+            { key: "signals",  label: t("signals"),  val: trend.signals,  raw: true, color: "var(--fg-2)" },
+            { key: "sources",  label: t("sources"),  val: trend.sources,  raw: true, color: "var(--fg-2)" },
           ].map(m => (
             <div key={m.label} className="card" style={{ padding: 12 }}>
               <div style={{ color: "var(--fg-3)", fontSize: 10.5, textTransform: "uppercase", letterSpacing: 0.8, marginBottom: 8 }}>{m.label}</div>
               <div style={{ display: "flex", alignItems: "baseline", gap: 6 }}>
-                <span className="mono" style={{ color: "var(--fg-0)", fontSize: 22, fontWeight: 600 }}>{m.val}</span>
+                <span className="mono" style={{ color: "var(--fg-0)", fontSize: 22, fontWeight: 600 }}>{m.val ?? 0}</span>
                 {!m.raw && <span className="mono" style={{ color: "var(--fg-3)", fontSize: 11 }}>/100</span>}
               </div>
-              {!m.raw && <div style={{ marginTop: 8 }}><BarMeter value={m.val} color={m.color} height={3}/></div>}
+              {!m.raw && (
+                <div style={{ marginTop: 10 }}>
+                  {m.editable && onUpdate
+                    ? <EditableBar value={m.val ?? 0} color={m.color} onChange={v => onUpdate(trend.id, { [m.key]: v })}/>
+                    : <BarMeter value={m.val ?? 0} color={m.color} height={3}/>}
+                </div>
+              )}
             </div>
           ))}
         </div>

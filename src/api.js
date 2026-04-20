@@ -21,6 +21,13 @@ export const conceptsApi = {
   remove: (id) => request('/api/concepts?id=' + encodeURIComponent(id), { method: 'DELETE' }),
 };
 
+export const trendsApi = {
+  list: () => request('/api/trends'),
+  create: (body) => request('/api/trends', { method: 'POST', body: JSON.stringify(body) }),
+  update: (id, patch) => request('/api/trends?id=' + encodeURIComponent(id), { method: 'PUT', body: JSON.stringify(patch) }),
+  remove: (id) => request('/api/trends?id=' + encodeURIComponent(id), { method: 'DELETE' }),
+};
+
 export const chatApi = {
   send: ({ messages, system, context }) =>
     request('/api/chat', { method: 'POST', body: JSON.stringify({ messages, system, context }) }),

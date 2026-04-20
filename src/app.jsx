@@ -10,17 +10,31 @@ import { ProcessPipeline, AnalyticsHub } from './process.jsx';
 import { CampaignWorkspace, CaptureDialog, ClusterReview } from './campaigns.jsx';
 import { AIScout, Library, TweaksPanel } from './panels.jsx';
 import { ConceptList, ConceptWorkspace } from './initiatives.jsx';
+import { NewTrendDialog } from './trends.jsx';
 import { useLocation, parseRoute, buildPath } from './router.js';
-import { conceptsApi } from './api.js';
+import { conceptsApi, trendsApi } from './api.js';
 
 const App = () => {
-  const data = CIN_DATA;
   const campaignsData = CIN_CAMPAIGNS;
   const { pathname, navigate } = useLocation();
   const parsed = parseRoute(pathname);
   const { route, trendId, campaignId, initiativeId, processStage } = parsed;
 
+  const [customTrends, setCustomTrends] = useState([]);
+  useEffect(() => {
+    trendsApi.list().then(r => setCustomTrends(r.trends || [])).catch(() => {});
+  }, []);
+
+  const data = (() => {
+    const byId = new Map(CIN_DATA.trends.map(t => [t.id, t]));
+    for (const t of customTrends) byId.set(t.id, t);
+    const trends = Array.from(byId.values());
+    const owners = Array.from(new Set(trends.map(t => t.owner).filter(Boolean)));
+    return { ...CIN_DATA, trends, owners };
+  })();
+
   const [captureOpen, setCaptureOpen] = useState(false);
+  const [newTrendOpen, setNewTrendOpen] = useState(false);
   const [clusterReviewId, setClusterReviewId] = useState(null);
   const [lang, setLang] = useState("de");
   const [search, setSearch] = useState("");
@@ -56,6 +70,22 @@ const App = () => {
   const backFromInitiative = () => navigate(buildPath({ route: "initiatives" }));
   const setProcessStage = stage => navigate(buildPath({ route: "process", processStage: stage }));
 
+  // Debounced PUT per trend-id
+  const saveTimers = {};
+  const updateTrend = (id, patch) => {
+    setCustomTrends(prev => {
+      const existing = prev.find(t => t.id === id);
+      if (existing) return prev.map(t => t.id === id ? { ...t, ...patch, updatedAt: new Date().toISOString() } : t);
+      const mock = CIN_DATA.trends.find(t => t.id === id);
+      const base = mock ? { ...mock, custom: true } : { id };
+      return [...prev, { ...base, ...patch, updatedAt: new Date().toISOString() }];
+    });
+    if (saveTimers[id]) clearTimeout(saveTimers[id]);
+    saveTimers[id] = setTimeout(() => {
+      trendsApi.update(id, patch).catch(err => console.error('Trend-Update fehlgeschlagen', err));
+    }, 400);
+  };
+
   const launchInitiativeFromTrend = async (trend) => {
     try {
       const r = await conceptsApi.create({
@@ -78,7 +108,7 @@ const App = () => {
   let content;
   if (route === "dashboard")              content = <Dashboard data={data} campaignsData={campaignsData} onGo={goTo} onOpenTrend={openTrend} onOpenCapture={() => setCaptureOpen(true)} onOpenTweaks={() => setTweaksOpen(true)} onOpenAI={() => setAiOpen(true)}/>;
   else if (route === "explore")           content = <Explorer t={t} data={data} search={search} onOpenTrend={openTrend}/>;
-  else if (route === "trendDetail")       content = <TrendDetail t={t} data={data} trendId={trendId} onBack={backFromTrend}/>;
+  else if (route === "trendDetail")       content = <TrendDetail t={t} data={data} trendId={trendId} onBack={backFromTrend} onUpdate={updateTrend}/>;
   else if (route === "process")           content = <ProcessPipeline data={data} campaignsData={campaignsData} stage={processStage} setStage={setProcessStage} onOpenCampaign={openCampaign} onOpenCluster={id => setClusterReviewId(id)} onOpenCapture={() => setCaptureOpen(true)} onOpenInitiative={openInitiative} onLaunchInitiative={launchInitiativeFromTrend}/>;
   else if (route === "campaignWorkspace") content = <CampaignWorkspace {...campaignsData} campaignId={campaignId} onBack={backToProcess} onOpenCapture={() => setCaptureOpen(true)} onOpenCluster={id => setClusterReviewId(id)}/>;
   else if (route === "initiativeDetail")  content = <ConceptWorkspace id={initiativeId} trends={data.trends} onBack={() => navigate(buildPath({ route: 'initiatives' }))}/>;
@@ -96,11 +126,22 @@ const App = () => {
     <div style={{ display: "flex", height: "100vh", overflow: "hidden" }} data-screen-label={`CIN · ${route}`}>
       <Sidebar route={navRoute} setRoute={r => goTo(r)} collapsed={sidebarCollapsed} setCollapsed={setSidebarCollapsed} t={t}/>
       <div style={{ flex: 1, display: "flex", flexDirection: "column", minWidth: 0 }}>
-        <Header t={t} lang={lang} setLang={setLang} onOpenAI={() => setAiOpen(true)} aiPending={data.aiInbox.length} onSearch={setSearch} search={search} onNewTrend={() => setCaptureOpen(true)}/>
+        <Header t={t} lang={lang} setLang={setLang} onOpenAI={() => setAiOpen(true)} aiPending={data.aiInbox.length} onSearch={setSearch} search={search} onNewTrend={() => setNewTrendOpen(true)}/>
         <main style={{ flex: 1, overflow: "hidden", background: "var(--bg-0)" }}>{content}</main>
       </div>
       <AIScout open={aiOpen} onClose={() => setAiOpen(false)} data={data} t={t}/>
       <CaptureDialog open={captureOpen} onClose={() => setCaptureOpen(false)}/>
+      <NewTrendDialog
+        open={newTrendOpen}
+        onClose={() => setNewTrendOpen(false)}
+        dimensions={data.dimensions}
+        horizons={data.horizons}
+        stages={data.stages}
+        onCreated={(trend) => {
+          setCustomTrends(prev => [trend, ...prev]);
+          navigate(buildPath({ route: 'trendDetail', trendId: trend.id }));
+        }}
+      />
       <ClusterReview open={!!clusterReviewId} onClose={() => setClusterReviewId(null)} clusters={campaignsData.clusters} ideas={campaignsData.ideas} clusterId={clusterReviewId}/>
       {tweaksOpen && <TweaksPanel tweaks={tweaks} setTweaks={setTweaks} onClose={() => setTweaksOpen(false)}/>}
     </div>

@@ -177,3 +177,39 @@ hr.sep { border: 0; border-top: 1px solid var(--line-1); margin: 0; }
   color: transparent;
   animation: ai-shimmer 4s linear infinite;
 }
+
+/* Draggable range slider themed to match bars */
+input[type="range"].bar {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 100%;
+  height: 6px;
+  background: var(--bg-3);
+  border-radius: 999px;
+  cursor: pointer;
+  outline: none;
+  margin: 0;
+  padding: 0;
+}
+input[type="range"].bar::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 14px;
+  height: 14px;
+  background: var(--thumb-color, var(--accent));
+  border-radius: 50%;
+  cursor: grab;
+  border: 2px solid var(--bg-0);
+  box-shadow: 0 1px 3px rgba(0,0,0,0.5);
+  transition: transform .12s ease;
+}
+input[type="range"].bar::-webkit-slider-thumb:active { cursor: grabbing; transform: scale(1.15); }
+input[type="range"].bar::-moz-range-thumb {
+  width: 14px;
+  height: 14px;
+  background: var(--thumb-color, var(--accent));
+  border-radius: 50%;
+  cursor: grab;
+  border: 2px solid var(--bg-0);
+  box-shadow: 0 1px 3px rgba(0,0,0,0.5);
+}
