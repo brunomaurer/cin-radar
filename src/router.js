@@ -8,7 +8,8 @@ export function parseRoute(pathname) {
     case 'explore':     return { route: 'explore' };
     case 'trend':       return arg ? { route: 'trendDetail', trendId: arg } : { route: 'explore' };
     case 'process':     { const stage = arg || 'scout'; return { route: 'process', processStage: stage === 'validate' ? 'rate' : stage }; }
-    case 'campaign':    return arg ? { route: 'campaignWorkspace', campaignId: arg } : { route: 'process', processStage: 'scout' };
+    case 'campaigns':   return { route: 'campaigns' };
+    case 'campaign':    return arg ? { route: 'campaignWorkspace', campaignId: arg } : { route: 'campaigns' };
     case 'initiatives': return { route: 'initiatives' };
     case 'initiative':  return arg ? { route: 'initiativeDetail', initiativeId: arg } : { route: 'initiatives' };
     case 'analytics':   return { route: 'analytics' };
@@ -25,6 +26,7 @@ export function buildPath({ route, trendId, campaignId, initiativeId, processSta
     case 'explore':           return '/explore';
     case 'trendDetail':       return '/trend/' + trendId;
     case 'process':           return processStage ? '/process/' + processStage : '/process/scout';
+    case 'campaigns':        return '/campaigns';
     case 'campaignWorkspace': return '/campaign/' + campaignId;
     case 'initiatives':       return '/initiatives';
     case 'initiativeDetail':  return '/initiative/' + initiativeId;

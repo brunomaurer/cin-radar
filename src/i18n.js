@@ -2,6 +2,7 @@ export const CIN_I18N = {
   de: {
     nav_dashboard: "Dashboard",
     nav_explore: "Explore",
+    nav_campaigns: "Kampagnen",
     nav_process: "Prozess",
     nav_analytics: "Analytics",
     nav_initiatives: "Initiativen",
@@ -51,6 +52,7 @@ export const CIN_I18N = {
   en: {
     nav_dashboard: "Dashboard",
     nav_explore: "Explore",
+    nav_campaigns: "Campaigns",
     nav_process: "Process",
     nav_analytics: "Analytics",
     nav_initiatives: "Initiatives",

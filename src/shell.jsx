@@ -5,6 +5,7 @@ export const NAV = [
   { id: "dashboard",  icon: "grid",     key: "nav_dashboard" },
   { id: "explore",    icon: "list",     key: "nav_explore" },
   { id: "signals",    icon: "zap",      key: "nav_signals" },
+  { id: "campaigns",  icon: "folder",   key: "nav_campaigns" },
   { id: "process",    icon: "funnel",   key: "nav_process" },
   { id: "analytics",  icon: "chart",    key: "nav_analytics" },
   { id: "initiatives",icon: "bolt",     key: "nav_initiatives" },
