@@ -129,7 +129,6 @@ const App = () => {
   else if (route === "analytics")         content = <AnalyticsHub t={t} data={data} onOpenTrend={openTrend}/>;
   else if (route === "initiatives")       content = <ConceptList onOpen={(id) => navigate(buildPath({ route: 'initiativeDetail', initiativeId: id }))} onGoToRate={() => navigate(buildPath({ route: 'process', processStage: 'rate' }))}/>;
   else if (route === "library")           content = <Library/>;
-  else if (route === "signals")           content = <SignalList t={t} onOpenTrend={id => navigate(buildPath({ route: 'trendDetail', trendId: id }))} />;
 
   const navRoute =
     route === "trendDetail" ? "explore" :

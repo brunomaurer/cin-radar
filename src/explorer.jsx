@@ -1,6 +1,7 @@
 // Explorer — table/list with filters, sort, search
 import { useState, useMemo, useEffect } from 'react';
 import { Icon, BarMeter, Sparkline, StageBadge, DimensionDot } from './ui.jsx';
+import { signalsApi } from './api.js';
 
 const processStages = [
   { k: 'all', l: 'All', c: 'var(--fg-2)' },
@@ -28,6 +29,18 @@ export const Explorer = ({ t, data, search, onOpenTrend, campaigns }) => {
   const [processFilter, setProcessFilter] = useState('all');
   const [campaignFilter, setCampaignFilter] = useState('');
   const [channelFilter, setChannelFilter] = useState('');
+  const [signals, setSignals] = useState([]);
+  const [signalsLoading, setSignalsLoading] = useState(false);
+
+  useEffect(() => {
+    if (view === 'signals') {
+      setSignalsLoading(true);
+      signalsApi.list()
+        .then(r => setSignals(Array.isArray(r) ? r : []))
+        .catch(() => setSignals([]))
+        .finally(() => setSignalsLoading(false));
+    }
+  }, [view]);
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
@@ -124,6 +137,7 @@ export const Explorer = ({ t, data, search, onOpenTrend, campaigns }) => {
           <button onClick={() => setView("table")} style={{ padding: "4px 8px", borderRadius: 4, background: view === "table" ? "var(--bg-3)" : "transparent", color: view === "table" ? "var(--fg-0)" : "var(--fg-3)" }}><Icon name="list" size={13}/></button>
           <button onClick={() => setView("cards")} style={{ padding: "4px 8px", borderRadius: 4, background: view === "cards" ? "var(--bg-3)" : "transparent", color: view === "cards" ? "var(--fg-0)" : "var(--fg-3)" }}><Icon name="grid" size={13}/></button>
           <button className={`btn sm${view === 'tiles' ? ' active' : ''}`} onClick={() => setView('tiles')} style={view === 'tiles' ? { background: 'var(--accent)', color: '#fff' } : {}}>Tiles</button>
+          <button className={`btn sm${view === 'signals' ? ' active' : ''}`} onClick={() => setView('signals')} style={view === 'signals' ? { background: 'var(--accent)', color: '#fff' } : {}}><Icon name="zap" size={12}/> Signals</button>
         </div>
 
         <div className="mono" style={{ color: "var(--fg-3)", fontSize: 11 }}>
@@ -268,6 +282,64 @@ export const Explorer = ({ t, data, search, onOpenTrend, campaigns }) => {
               </div>
             </div>
           ))}
+        </div>
+      )}
+
+      {view === 'signals' && (
+        <div className="scroll" style={{ flex: 1, padding: 16, overflow: 'auto' }}>
+          {signalsLoading && (
+            <div style={{ textAlign: 'center', color: 'var(--fg-3)', padding: 48, fontSize: 13 }}>Loading signals…</div>
+          )}
+          {!signalsLoading && signals.length === 0 && (
+            <div style={{ textAlign: 'center', padding: 64 }}>
+              <div style={{ width: 48, height: 48, borderRadius: 12, background: 'var(--bg-2)', display: 'grid', placeItems: 'center', margin: '0 auto 16px' }}>
+                <Icon name="zap" size={22} />
+              </div>
+              <div style={{ color: 'var(--fg-1)', fontWeight: 500, marginBottom: 6 }}>No signals yet</div>
+              <div style={{ color: 'var(--fg-3)', fontSize: 12 }}>Signals will appear here once captured via manual entry, URL, PDF, or AI Scout.</div>
+            </div>
+          )}
+          {!signalsLoading && signals.length > 0 && (
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))', gap: 12, alignContent: 'start' }}>
+              {signals.map(s => {
+                const date = s.createdAt ? new Date(s.createdAt).toLocaleDateString('de-CH', { day: '2-digit', month: '2-digit', year: '2-digit' }) : '';
+                const isAssigned = !!(s.trendId || s.clusterId);
+                return (
+                  <div key={s.id} className="card" style={{ padding: 14, display: 'flex', flexDirection: 'column', gap: 8 }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                      <span style={{ display: 'inline-block', width: 8, height: 8, borderRadius: '50%', background: { manual: '#3B82F6', url: '#10B981', pdf: '#F59E0B', 'ai-scout': '#A78BFA' }[s.channel] || 'var(--fg-3)', flexShrink: 0 }} />
+                      <span style={{ color: 'var(--fg-0)', fontWeight: 500, fontSize: 13.5, flex: 1 }}>{s.title}</span>
+                      <span className="mono" style={{ color: 'var(--fg-3)', fontSize: 10.5 }}>{s.channel}</span>
+                    </div>
+                    {s.source && (
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 6, color: 'var(--fg-3)', fontSize: 11.5 }}>
+                        <Icon name="link" size={11} />
+                        <span className="mono" style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: 320 }}>{s.source}</span>
+                      </div>
+                    )}
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
+                      {(s.tags || []).map(tag => <span key={tag} className="chip" style={{ fontSize: 10.5 }}>{tag}</span>)}
+                      <div style={{ flex: 1 }} />
+                      {date && <span className="mono" style={{ color: 'var(--fg-3)', fontSize: 10.5 }}>{date}</span>}
+                    </div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 2 }}>
+                      {isAssigned ? (
+                        <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5, fontSize: 11, color: 'var(--fg-2)', background: 'var(--bg-2)', borderRadius: 4, padding: '2px 8px', border: '1px solid var(--line-2)' }}>
+                          <Icon name="check" size={11} />
+                          {s.trendId && <button onClick={() => onOpenTrend(s.trendId)} style={{ background: 'none', border: 'none', padding: 0, cursor: 'pointer', color: 'var(--accent)', fontSize: 11, fontWeight: 500 }}>Trend #{s.trendId}</button>}
+                          {!s.trendId && s.clusterId && <span>Cluster #{s.clusterId}</span>}
+                        </span>
+                      ) : (
+                        <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5, fontSize: 11, color: 'var(--fg-3)', background: 'var(--bg-1)', borderRadius: 4, padding: '2px 8px', border: '1px solid var(--line-1)' }}>
+                          <Icon name="minus" size={11} /> unassigned
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
         </div>
       )}
     </div>
