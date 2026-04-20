@@ -98,7 +98,7 @@ export const SignalList = ({ t, onOpenTrend }) => {
   useEffect(() => {
     setLoading(true);
     signalsApi.list()
-      .then(r => { setSignals(r.signals || []); setError(null); })
+      .then(r => { setSignals(Array.isArray(r) ? r : r.signals || []); setError(null); })
       .catch(e => setError(e.message))
       .finally(() => setLoading(false));
   }, []);

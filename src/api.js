@@ -29,7 +29,7 @@ export const trendsApi = {
 };
 
 export const signalsApi = {
-  list: () => request('/api/signals'),
+  list: () => request('/api/signals').then(r => r.signals || []),
   create: (body) => request('/api/signals', { method: 'POST', body: JSON.stringify(body) }),
   get: (id) => request('/api/signals?id=' + encodeURIComponent(id)),
   update: (id, patch) => request('/api/signals?id=' + encodeURIComponent(id), { method: 'PUT', body: JSON.stringify(patch) }),
@@ -37,7 +37,7 @@ export const signalsApi = {
 };
 
 export const campaignsApi = {
-  list: () => request('/api/campaigns'),
+  list: () => request('/api/campaigns').then(r => r.campaigns || []),
   create: (body) => request('/api/campaigns', { method: 'POST', body: JSON.stringify(body) }),
   get: (id) => request('/api/campaigns?id=' + encodeURIComponent(id)),
   update: (id, patch) => request('/api/campaigns?id=' + encodeURIComponent(id), { method: 'PUT', body: JSON.stringify(patch) }),
@@ -45,7 +45,7 @@ export const campaignsApi = {
 };
 
 export const clustersApi = {
-  list: () => request('/api/clusters'),
+  list: () => request('/api/clusters').then(r => r.clusters || []),
   create: (body) => request('/api/clusters', { method: 'POST', body: JSON.stringify(body) }),
   get: (id) => request('/api/clusters?id=' + encodeURIComponent(id)),
   update: (id, patch) => request('/api/clusters?id=' + encodeURIComponent(id), { method: 'PUT', body: JSON.stringify(patch) }),
