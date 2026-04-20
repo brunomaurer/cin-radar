@@ -3,7 +3,7 @@ import { Fragment, useState, useEffect } from 'react';
 import { Icon, BarMeter, DimensionDot } from './ui.jsx';
 import { Radar, Matrix, Timeline, Funnel } from './viz.jsx';
 import { useLocalStorage } from './useLocalStorage.js';
-import { conceptsApi } from './api.js';
+import { conceptsApi, clustersApi } from './api.js';
 
 export const ProcessPipeline = ({ data, campaignsData, stage, setStage, onOpenCampaign, onOpenCluster, onOpenCapture, onOpenInitiative, onLaunchInitiative }) => {
   const [initiatives, setInitiatives] = useState(null);
@@ -115,31 +115,76 @@ const ScoutStage = ({ campaigns, onOpenCampaign, onOpenCapture }) => (
   </div>
 );
 
-const ClusterStage = ({ clusters, ideas, onOpenCluster }) => (
-  <div style={{ padding: 20 }}>
-    <div style={{ fontSize: 12.5, color: "var(--fg-2)", marginBottom: 14 }}>AI groups incoming signals into semantic clusters. Clusters with ≥ 3 signals and ≥ 0.8 confidence become candidate trends.</div>
-    <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(280px, 1fr))", gap: 12 }}>
-      {clusters.map(cl => {
-        const count = ideas.filter(i => i.cluster === cl.id).length;
-        return (
-          <div key={cl.id} className="card" style={{ padding: 14, borderLeft: `3px solid ${cl.color}` }}>
-            <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 8 }}>
-              <span className="mono" style={{ fontSize: 10.5, color: "var(--fg-3)" }}>{count} signals</span>
-              <div style={{ flex: 1 }}/>
-              <span className="mono" style={{ fontSize: 11, color: cl.confidence > 0.85 ? "#34D399" : "#F59E0B" }}>{(cl.confidence*100).toFixed(0)}%</span>
-            </div>
-            <div style={{ fontSize: 13.5, color: "var(--fg-0)", fontWeight: 500, marginBottom: 10 }}>{cl.label}</div>
-            {cl.proposed ? (
-              <button className="btn ai sm" style={{ width: "100%" }} onClick={() => onOpenCluster(cl.id)}><Icon name="sparkles" size={12}/> Review as trend</button>
-            ) : (
-              <div className="mono" style={{ fontSize: 10.5, color: "var(--fg-3)" }}>needs more signals</div>
-            )}
-          </div>
-        );
-      })}
+const NewClusterDialog = ({ open, onClose, onCreated }) => {
+  const [form, setForm] = useState({ label: '', description: '' });
+  const [saving, setSaving] = useState(false);
+
+  if (!open) return null;
+
+  const handleSave = async () => {
+    if (!form.label.trim()) return;
+    setSaving(true);
+    try {
+      const cluster = await clustersApi.create({ ...form, origin: 'manual' });
+      onCreated(cluster);
+      onClose();
+      setForm({ label: '', description: '' });
+    } catch (e) {
+      alert('Error: ' + e.message);
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  return (
+    <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,.55)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 900 }} onClick={onClose}>
+      <div className="card" style={{ width: 400, padding: 24 }} onClick={e => e.stopPropagation()}>
+        <h3 style={{ margin: '0 0 16px', fontSize: 16, color: 'var(--fg-0)' }}>Neuer Cluster</h3>
+        <input className="input" placeholder="Label *" value={form.label} onChange={e => setForm(f => ({ ...f, label: e.target.value }))} autoFocus style={{ marginBottom: 10, width: '100%' }} />
+        <textarea className="input" placeholder="Beschreibung" value={form.description} onChange={e => setForm(f => ({ ...f, description: e.target.value }))} rows={3} style={{ resize: 'vertical', width: '100%' }} />
+        <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8, marginTop: 16 }}>
+          <button className="btn sm" onClick={onClose}>Abbrechen</button>
+          <button className="btn ai sm" onClick={handleSave} disabled={saving || !form.label.trim()}>
+            {saving ? 'Erstellen…' : 'Cluster erstellen'}
+          </button>
+        </div>
+      </div>
     </div>
-  </div>
-);
+  );
+};
+
+const ClusterStage = ({ clusters, ideas, onOpenCluster }) => {
+  const [newClusterOpen, setNewClusterOpen] = useState(false);
+  return (
+    <div style={{ padding: 20 }}>
+      <div style={{ fontSize: 12.5, color: "var(--fg-2)", marginBottom: 14 }}>AI groups incoming signals into semantic clusters. Clusters with ≥ 3 signals and ≥ 0.8 confidence become candidate trends.</div>
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(280px, 1fr))", gap: 12 }}>
+        {clusters.map(cl => {
+          const count = ideas.filter(i => i.cluster === cl.id).length;
+          return (
+            <div key={cl.id} className="card" style={{ padding: 14, borderLeft: `3px solid ${cl.color}` }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 8 }}>
+                <span className="mono" style={{ fontSize: 10.5, color: "var(--fg-3)" }}>{count} signals</span>
+                <div style={{ flex: 1 }}/>
+                <span className="mono" style={{ fontSize: 11, color: cl.confidence > 0.85 ? "#34D399" : "#F59E0B" }}>{(cl.confidence*100).toFixed(0)}%</span>
+              </div>
+              <div style={{ fontSize: 13.5, color: "var(--fg-0)", fontWeight: 500, marginBottom: 10 }}>{cl.label}</div>
+              {cl.proposed ? (
+                <button className="btn ai sm" style={{ width: "100%" }} onClick={() => onOpenCluster(cl.id)}><Icon name="sparkles" size={12}/> Review as trend</button>
+              ) : (
+                <div className="mono" style={{ fontSize: 10.5, color: "var(--fg-3)" }}>needs more signals</div>
+              )}
+            </div>
+          );
+        })}
+      </div>
+      <button className="btn sm" style={{ width: '100%', marginTop: 12, borderStyle: 'dashed' }} onClick={() => setNewClusterOpen(true)}>
+        + Neuer Cluster
+      </button>
+      <NewClusterDialog open={newClusterOpen} onClose={() => setNewClusterOpen(false)} onCreated={(c) => {}} />
+    </div>
+  );
+};
 
 const RateStage = ({ trends, onLaunch }) => {
   const top = trends.slice(0, 5);
