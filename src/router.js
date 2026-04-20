@@ -13,6 +13,7 @@ export function parseRoute(pathname) {
     case 'initiative':  return arg ? { route: 'initiativeDetail', initiativeId: arg } : { route: 'initiatives' };
     case 'analytics':   return { route: 'analytics' };
     case 'library':     return { route: 'library' };
+    case 'signals':     return { route: 'signals' };
     case 'dashboard':   return { route: 'dashboard' };
     default:            return { route: 'dashboard' };
   }
@@ -29,6 +30,7 @@ export function buildPath({ route, trendId, campaignId, initiativeId, processSta
     case 'initiativeDetail':  return '/initiative/' + initiativeId;
     case 'analytics':         return '/analytics';
     case 'library':           return '/library';
+    case 'signals':           return '/signals';
     default:                  return '/';
   }
 }

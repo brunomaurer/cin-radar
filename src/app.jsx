@@ -10,6 +10,7 @@ import { ProcessPipeline, AnalyticsHub } from './process.jsx';
 import { CampaignWorkspace, CaptureDialog, ClusterReview } from './campaigns.jsx';
 import { AIScout, Library, TweaksPanel } from './panels.jsx';
 import { ConceptList, ConceptWorkspace } from './initiatives.jsx';
+import { SignalList } from './signals.jsx';
 import { NewTrendDialog } from './trends.jsx';
 import { useLocation, parseRoute, buildPath } from './router.js';
 import { conceptsApi, trendsApi } from './api.js';
@@ -115,6 +116,7 @@ const App = () => {
   else if (route === "analytics")         content = <AnalyticsHub t={t} data={data} onOpenTrend={openTrend}/>;
   else if (route === "initiatives")       content = <ConceptList onOpen={(id) => navigate(buildPath({ route: 'initiativeDetail', initiativeId: id }))} onGoToRate={() => navigate(buildPath({ route: 'process', processStage: 'rate' }))}/>;
   else if (route === "library")           content = <Library/>;
+  else if (route === "signals")           content = <SignalList t={t} onOpenTrend={id => navigate(buildPath({ route: 'trendDetail', trendId: id }))} />;
 
   const navRoute =
     route === "trendDetail" ? "explore" :
