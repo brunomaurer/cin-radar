@@ -43,7 +43,25 @@ export const AIScout = ({ open, onClose, data, t }) => {
 
   if (!open) return null;
 
-  const handleAccept = id => setDismissedIds(ids => [...ids, id]);
+  const handleAccept = async (id) => {
+    const item = items.find(n => n.id === id);
+    if (item) {
+      try {
+        await signalsApi.create({
+          title: item.title,
+          source: item.source || '',
+          channel: 'ai-scout',
+          strength: item.confidence || 0.7,
+          tags: [],
+          trendId: null,
+          summary: item.proposedTrend ? `Proposed trend: ${item.proposedTrend}` : (item.matchedTrend ? `Matched: ${item.matchedTrend}` : ''),
+        });
+      } catch (e) {
+        console.error('Failed to save signal:', e);
+      }
+    }
+    setDismissedIds(ids => [...ids, id]);
+  };
   const handleDismiss = id => setDismissedIds(ids => [...ids, id]);
   const handleReset = () => setDismissedIds([]);
 
