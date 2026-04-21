@@ -58,56 +58,13 @@ export const CampaignList = ({ data, onOpen, onNewCampaign }) => {
 
   return (
     <div style={{ padding: 20, overflow: "auto", height: "100%" }} className="scroll">
-      <div className="card" style={{ padding: 20, marginBottom: 20, background: "linear-gradient(135deg, rgba(167,139,250,0.08), rgba(59,130,246,0.04) 60%, transparent)", borderColor: "rgba(167,139,250,0.25)" }}>
-        <div style={{ display: "flex", alignItems: "flex-start", gap: 20 }}>
-          <div style={{ flex: 1 }}>
-            <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 8 }}>
-              <span className="ai-shimmer" style={{ fontSize: 11, fontWeight: 600, textTransform: "uppercase", letterSpacing: 1 }}>Campaigns</span>
-              <span className="chip ai mono" style={{ fontSize: 10 }}>AI-assisted capture</span>
-            </div>
-            <h1 style={{ margin: 0, fontSize: 22, fontWeight: 600, color: "var(--fg-0)" }}>Where signals & ideas come from</h1>
-            <p style={{ margin: "8px 0 0", color: "var(--fg-2)", fontSize: 13.5, maxWidth: 640, lineHeight: 1.55 }}>
-              Run open campaigns, invite externals, let the AI cluster incoming ideas in real time.
-              When a cluster stabilises, it's proposed as a trend — you approve, the radar updates.
-            </p>
-          </div>
-          <button className="btn ai" onClick={onNewCampaign}><Icon name="plus" size={13}/> New campaign</button>
+      <div style={{ display: "flex", alignItems: "center", gap: 16, marginBottom: 20 }}>
+        <div style={{ flex: 1 }}>
+          <h1 style={{ margin: 0, fontSize: 20, fontWeight: 600, color: "var(--fg-0)" }}>Kampagnen</h1>
+          <p style={{ margin: "4px 0 0", color: "var(--fg-2)", fontSize: 13 }}>
+            Kampagnen erstellen, Signale sammeln, Cluster bilden, Trends ableiten.
+          </p>
         </div>
-
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 10, marginTop: 20 }}>
-          {[
-            { icon: "plus",      label: "Create",    sub: "Open idea collection", hint: "Freetext + URL + voice", color: "#60A5FA" },
-            { icon: "star",      label: "Rating",    sub: "Prioritise existing",  hint: "Reaction-based voting",   color: "#FBBF24" },
-            { icon: "link",      label: "Share",     sub: "Public link, externals", hint: "No login, AI-structured",color: "#34D399" },
-            { icon: "user",      label: "Interview", sub: "AI-guided 1:1",        hint: "Extracts 5–12 signals",   color: "#A78BFA" },
-          ].map(k => (
-            <button key={k.label} onClick={onNewCampaign} className="card" style={{ padding: 12, textAlign: "left", cursor: "pointer" }}>
-              <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 8 }}>
-                <div style={{ width: 26, height: 26, borderRadius: 6, background: "var(--bg-3)", color: k.color, display: "grid", placeItems: "center" }}><Icon name={k.icon} size={14}/></div>
-                <span style={{ fontSize: 13, fontWeight: 600, color: "var(--fg-0)" }}>{k.label}</span>
-              </div>
-              <div style={{ fontSize: 11.5, color: "var(--fg-1)", marginBottom: 2 }}>{k.sub}</div>
-              <div className="mono" style={{ fontSize: 10.5, color: "var(--fg-3)" }}>{k.hint}</div>
-            </button>
-          ))}
-        </div>
-      </div>
-
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr 1fr", gap: 10, marginBottom: 20 }}>
-        {[
-          { icon: "ext", title: "Browser extension", sub: "1-click on any URL", stat: "342 this month" },
-          { icon: "bell", title: "Slack / Teams bot", sub: "/cin capture", stat: "124 this month" },
-          { icon: "sparkles", title: "Email forwarding", sub: "signals@…", stat: "88 this month" },
-          { icon: "user", title: "Voice note (mobile)", sub: "Talk, get draft", stat: "21 this month" },
-        ].map(c => (
-          <div key={c.title} className="card" style={{ padding: 12, display: "flex", alignItems: "center", gap: 10 }}>
-            <div style={{ width: 30, height: 30, borderRadius: 7, background: "var(--bg-3)", color: "var(--accent-2)", display: "grid", placeItems: "center" }}><Icon name={c.icon} size={14}/></div>
-            <div style={{ flex: 1, minWidth: 0 }}>
-              <div style={{ fontSize: 12.5, color: "var(--fg-0)" }}>{c.title}</div>
-              <div className="mono" style={{ fontSize: 10.5, color: "var(--fg-3)" }}>{c.sub} · {c.stat}</div>
-            </div>
-          </div>
-        ))}
       </div>
 
       <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 12 }}>
