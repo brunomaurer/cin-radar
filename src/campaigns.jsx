@@ -292,9 +292,9 @@ export const CampaignWorkspace = ({ campaigns, ideas: mockIdeas, clusters, parti
   const proposalCount = proposals.length;
 
   return (
-    <div style={{ display: "grid", gridTemplateColumns: "1fr 380px", height: "100%", overflow: "hidden" }}>
+    <div style={{ display: "grid", gridTemplateColumns: "1fr 380px", height: "100%", overflow: "auto" }} className="scroll">
       {/* Left column ~65% */}
-      <div style={{ display: "flex", flexDirection: "column", minWidth: 0, borderRight: "1px solid var(--line-1)", overflow: "hidden" }}>
+      <div style={{ display: "flex", flexDirection: "column", minWidth: 0, borderRight: "1px solid var(--line-1)" }}>
         {/* Top bar */}
         <div style={{ padding: "14px 20px", borderBottom: "1px solid var(--line-1)" }}>
           <button onClick={onBack} style={{ color: "var(--fg-3)", fontSize: 11.5, display: "inline-flex", alignItems: "center", gap: 4, marginBottom: 8, background: 'none', border: 'none', cursor: 'pointer' }}><Icon name="arrowLeft" size={12}/> All campaigns</button>
@@ -406,7 +406,7 @@ export const CampaignWorkspace = ({ campaigns, ideas: mockIdeas, clusters, parti
           </div>
         </div>
 
-        <div className="scroll" style={{ flex: 1, overflow: "auto", padding: "0 20px 20px" }}>
+        <div style={{ padding: "0 20px 20px" }}>
           {ideaStream.length === 0 && !generating && (
             <div style={{ padding: '40px 20px' }}>
               <div style={{ display: 'grid', gridTemplateColumns: '1fr auto 1fr', gap: 16, alignItems: 'center', marginBottom: 24 }}>
