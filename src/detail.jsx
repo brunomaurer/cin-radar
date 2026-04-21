@@ -2,14 +2,22 @@
 import { useState, useEffect } from 'react';
 import { Icon, BarMeter, StageBadge, DimensionDot } from './ui.jsx';
 import { EditableBar } from './trends.jsx';
-import { relationsApi, crawlApi } from './api.js';
+import { relationsApi, crawlApi, signalsApi } from './api.js';
 
 export const TrendDetail = ({ t, data, trendId, onBack, onUpdate, onOpenTrend }) => {
   const trend = data.trends.find(x => x.id === trendId) || data.trends[0];
   const [tab, setTab] = useState("overview");
   const [editing, setEditing] = useState(false);
   const [editForm, setEditForm] = useState({});
-  const signals = data.signals.filter(s => s.trendId === trend.id);
+  const mockSignals = data.signals.filter(s => s.trendId === trend.id);
+  const [kvSignals, setKvSignals] = useState([]);
+  useEffect(() => {
+    signalsApi.list().then(r => {
+      const arr = Array.isArray(r) ? r : [];
+      setKvSignals(arr.filter(s => s.trendId === trend.id));
+    }).catch(() => {});
+  }, [trend.id]);
+  const signals = [...mockSignals, ...kvSignals.filter(ks => !mockSignals.some(ms => ms.id === ks.id))];
 
   const startEdit = () => {
     setEditForm({ title: trend.title, summary: trend.summary || '', tags: (trend.tags || []).join(', '), dim: trend.dim, horizon: trend.horizon, stage: trend.stage, owner: trend.owner || '' });
@@ -154,7 +162,7 @@ export const TrendDetail = ({ t, data, trendId, onBack, onUpdate, onOpenTrend })
       </div>
 
       <div className="scroll" style={{ flex: 1, overflow: "auto", padding: 20 }}>
-        {tab === "overview" && <OverviewTab trend={trend} t={t} signals={signals} related={related} relLoading={relInfo.loading} onUpdate={onUpdate}/>}
+        {tab === "overview" && <OverviewTab trend={trend} t={t} signals={signals} related={related} relLoading={relInfo.loading} onUpdate={onUpdate} onOpenTrend={onOpenTrend}/>}
         {tab === "evidence" && <EvidenceTab signals={signals}/>}
         {tab === "implications" && <ImplicationsTab/>}
         {tab === "related" && <RelatedTab related={related} loading={relInfo.loading} onOpenTrend={onOpenTrend}/>}
@@ -204,7 +212,7 @@ const TrendImage = ({ trend, onUpdate }) => {
   );
 };
 
-const OverviewTab = ({ trend, t, signals: initialSignals, related, relLoading, onUpdate }) => {
+const OverviewTab = ({ trend, t, signals: initialSignals, related, relLoading, onUpdate, onOpenTrend }) => {
   const [crawling, setCrawling] = useState(false);
   const [crawledSignals, setCrawledSignals] = useState([]);
 
