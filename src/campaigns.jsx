@@ -322,22 +322,38 @@ export const CampaignWorkspace = ({ campaigns, ideas: mockIdeas, clusters, parti
             </div>
           </div>
 
-          {/* Stats row */}
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 10, marginTop: 14 }}>
+          {/* Pipeline stages */}
+          <div style={{ display: "flex", gap: 6, marginTop: 14 }}>
             {[
-              ["Signals", signalCount],
-              ["Clusters", clusterCount],
-              ["AI Proposals", proposalCount, true],
-            ].map(([label, val, ai], i) => (
-              <div key={i} style={{ padding: "8px 10px", background: "var(--bg-1)", borderRadius: 6, border: "1px solid var(--line-1)" }}>
-                <div style={{ fontSize: 10, color: "var(--fg-3)", textTransform: "uppercase", letterSpacing: 0.8 }}>{label}</div>
-                <div style={{ display: "flex", alignItems: "baseline", gap: 6, marginTop: 2 }}>
-                  <span className={ai ? "ai-shimmer" : "mono"} style={{ fontSize: 18, fontWeight: 600, color: ai ? undefined : "var(--fg-0)" }}>{val}</span>
+              { l: "Scout", n: signalCount, c: "#34D399", sub: "Signals" },
+              { l: "Cluster", n: clusterCount, c: "#A78BFA", sub: "Groups" },
+              { l: "Rate", n: proposalCount, c: "#F59E0B", sub: "Proposals" },
+              { l: "Initiative", n: 0, c: "#60A5FA", sub: "MVPs" },
+            ].map((s, i, arr) => (
+              <div key={s.l} style={{ flex: 1, display: 'flex', alignItems: 'center', gap: 4 }}>
+                <div style={{ flex: 1, padding: "8px 10px", borderRadius: 6, background: `${s.c}14`, border: `1px solid ${s.c}40` }}>
+                  <div style={{ fontSize: 9.5, color: s.c, textTransform: "uppercase", letterSpacing: 0.8, fontWeight: 600 }}>{s.l}</div>
+                  <div className="mono" style={{ fontSize: 16, fontWeight: 600, color: "var(--fg-0)", marginTop: 2 }}>{s.n}</div>
+                  <div style={{ fontSize: 9.5, color: "var(--fg-3)" }}>{s.sub}</div>
                 </div>
+                {i < arr.length - 1 && <div style={{ color: "var(--fg-4)", flexShrink: 0 }}><Icon name="chevronRight" size={10}/></div>}
               </div>
             ))}
           </div>
         </div>
+
+        {/* Cluster Map */}
+        {clusters.length > 0 && (
+          <div style={{ padding: "12px 20px", borderBottom: "1px solid var(--line-1)", background: "var(--bg-1)" }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 8 }}>
+              <span style={{ fontSize: 12, fontWeight: 600, color: "var(--fg-0)" }}>Cluster Map</span>
+              <span className="chip ai mono" style={{ fontSize: 9 }}><Icon name="sparkles" size={9}/>live</span>
+              <div style={{ flex: 1 }}/>
+              <span className="mono" style={{ fontSize: 10.5, color: "var(--fg-3)" }}>{clusters.length} clusters</span>
+            </div>
+            <ClusterMap clusters={clusters} selected={selectedCluster} onSelect={setSelectedCluster} onOpenCluster={onOpenCluster}/>
+          </div>
+        )}
 
         {/* Idea Stream */}
         <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "12px 20px", borderBottom: "1px solid var(--line-1)" }}>
@@ -408,18 +424,7 @@ export const CampaignWorkspace = ({ campaigns, ideas: mockIdeas, clusters, parti
           )}
         </div>
 
-        {/* Live Cluster Map — only show for mock campaigns that have clusters */}
-        {isMock && clusters.length > 0 && (
-          <div style={{ padding: 20, borderTop: "1px solid var(--line-1)", background: "var(--bg-1)" }}>
-            <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 10 }}>
-              <span style={{ fontSize: 13, fontWeight: 600, color: "var(--fg-0)" }}>Live Cluster Map</span>
-              <span className="chip ai mono" style={{ fontSize: 10 }}><Icon name="sparkles" size={10}/>updating</span>
-              <div style={{ flex: 1 }}/>
-              <span className="mono" style={{ fontSize: 11, color: "var(--fg-3)" }}>{clusters.length} clusters</span>
-            </div>
-            <ClusterMap clusters={clusters} selected={selectedCluster} onSelect={setSelectedCluster} onOpenCluster={onOpenCluster}/>
-          </div>
-        )}
+        {/* Cluster map moved to above Idea Stream */}
       </div>
 
       {/* Right column ~35% */}
