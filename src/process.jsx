@@ -5,7 +5,7 @@ import { Radar, Matrix, Timeline, Funnel } from './viz.jsx';
 import { useLocalStorage } from './useLocalStorage.js';
 import { conceptsApi, clustersApi, clusterToTrendApi, signalsApi } from './api.js';
 
-export const ProcessPipeline = ({ data, campaignsData, campaigns, stage, setStage, onOpenCampaign, onOpenCluster, onOpenCapture, onOpenInitiative, onLaunchInitiative, onReviewAsTrend }) => {
+export const ProcessPipeline = ({ data, campaignsData, campaigns, stage, setStage, onOpenCampaign, onOpenCluster, onOpenCapture, onOpenInitiative, onLaunchInitiative, onReviewAsTrend, onOpenClusterDetail }) => {
   const [initiatives, setInitiatives] = useState(null);
   const [campaignFilter, setCampaignFilter] = useState('');
   useEffect(() => {
@@ -77,7 +77,7 @@ export const ProcessPipeline = ({ data, campaignsData, campaigns, stage, setStag
         ) : (
           <Fragment>
             {stage === "scout" && <ScoutStage campaigns={campaignsData.campaigns} onOpenCampaign={onOpenCampaign} onOpenCapture={onOpenCapture}/>}
-            {stage === "cluster" && <ClusterStage clusters={campaignsData.clusters} ideas={campaignsData.ideas} onOpenCluster={onOpenCluster} onReviewAsTrend={onReviewAsTrend}/>}
+            {stage === "cluster" && <ClusterStage clusters={campaignsData.clusters} ideas={campaignsData.ideas} onOpenCluster={onOpenCluster} onReviewAsTrend={onReviewAsTrend} onOpenClusterDetail={onOpenClusterDetail}/>}
             {stage === "rate" && <RateStage trends={data.trends} onLaunch={onLaunchInitiative}/>}
             {stage === "initiative" && <InitiativeStage initiatives={initiatives} trends={data.trends} onOpen={onOpenInitiative} onGoToRate={() => setStage('rate')}/>}
           </Fragment>
@@ -162,7 +162,7 @@ const NewClusterDialog = ({ open, onClose, onCreated }) => {
   );
 };
 
-const ClusterStage = ({ clusters: mockClusters, ideas, onOpenCluster, onReviewAsTrend }) => {
+const ClusterStage = ({ clusters: mockClusters, ideas, onOpenCluster, onReviewAsTrend, onOpenClusterDetail }) => {
   const [newClusterOpen, setNewClusterOpen] = useState(false);
   const [generating, setGenerating] = useState(null); // clusterId currently being generated
   const [apiClusters, setApiClusters] = useState([]);
@@ -202,11 +202,11 @@ const ClusterStage = ({ clusters: mockClusters, ideas, onOpenCluster, onReviewAs
           const count = ideas.filter(i => i.cluster === cl.id).length;
           const isGenerating = generating === cl.id;
           return (
-            <div key={cl.id} className="card" style={{ padding: 14, borderLeft: `3px solid ${cl.color}` }}>
+            <div key={cl.id} className="card" style={{ padding: 14, borderLeft: `3px solid ${cl.color || '#A78BFA'}`, cursor: 'pointer' }} onClick={() => onOpenClusterDetail?.(cl.id)}>
               <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 8 }}>
                 <span className="mono" style={{ fontSize: 10.5, color: "var(--fg-3)" }}>{count} signals</span>
                 <div style={{ flex: 1 }}/>
-                <span className="mono" style={{ fontSize: 11, color: cl.confidence > 0.85 ? "#34D399" : "#F59E0B" }}>{(cl.confidence*100).toFixed(0)}%</span>
+                <span className="mono" style={{ fontSize: 11, color: (cl.confidence || 0) > 0.85 ? "#34D399" : "#F59E0B" }}>{cl.confidence != null ? (cl.confidence*100).toFixed(0) + '%' : '—'}</span>
               </div>
               <div style={{ fontSize: 13.5, color: "var(--fg-0)", fontWeight: 500, marginBottom: 10 }}>{cl.label}</div>
               {cl.proposed ? (
@@ -214,7 +214,7 @@ const ClusterStage = ({ clusters: mockClusters, ideas, onOpenCluster, onReviewAs
                   className="btn ai sm"
                   style={{ width: "100%" }}
                   disabled={isGenerating}
-                  onClick={() => handleReviewAsTrend(cl)}
+                  onClick={(e) => { e.stopPropagation(); handleReviewAsTrend(cl); }}
                 >
                   <Icon name="sparkles" size={12}/>
                   {isGenerating ? ' Generiere…' : ' Review as trend'}
