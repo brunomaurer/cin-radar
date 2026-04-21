@@ -40,26 +40,25 @@ export const Dashboard = ({ data, campaignsData, onGo, onOpenTrend, onOpenCaptur
             <div style={{ flex: 1 }}/>
             <button onClick={() => onGo("process")} style={{ color: "var(--accent-2)", fontSize: 12 }}>Open pipeline →</button>
           </div>
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(5, 1fr)", gap: 6 }}>
+          <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
             {[
-              { k: "scout", l: "Scout", n: 1840, c: "#60A5FA" },
+              { k: "scout", l: "Scout", n: 1840, c: "#34D399" },
               { k: "cluster", l: "Cluster", n: 204, c: "#A78BFA" },
-              { k: "validate", l: "Validate", n: 48, c: "#F472B6" },
-              { k: "rate", l: "Rate", n: 12, c: "#FBBF24" },
-              { k: "initiative", l: "Initiative", n: 4, c: "#34D399" },
+              { k: "rate", l: "Rate", n: 48, c: "#F59E0B" },
+              { k: "initiative", l: "Initiative", n: 4, c: "#60A5FA" },
             ].map((s, i, arr) => (
-              <div key={s.k} style={{ position: "relative" }}>
+              <div key={s.k} style={{ flex: "1 1 120px", display: "flex", alignItems: "center", gap: 4 }}>
                 <button onClick={() => onGo("process", s.k)} style={{ display: "block", width: "100%", padding: 12, borderRadius: 8, background: `${s.c}14`, border: `1px solid ${s.c}40`, textAlign: "left" }}>
                   <div style={{ fontSize: 10.5, color: s.c, textTransform: "uppercase", letterSpacing: 0.8 }}>0{i+1} · {s.l}</div>
                   <div className="mono" style={{ fontSize: 20, color: "var(--fg-0)", fontWeight: 600, marginTop: 4 }}>{s.n.toLocaleString()}</div>
                 </button>
-                {i < arr.length - 1 && <div style={{ position: "absolute", right: -10, top: "50%", transform: "translateY(-50%)", color: "var(--fg-4)", zIndex: 2 }}><Icon name="chevronRight" size={12}/></div>}
+                {i < arr.length - 1 && <div style={{ color: "var(--fg-4)", flexShrink: 0 }}><Icon name="chevronRight" size={12}/></div>}
               </div>
             ))}
           </div>
           <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "10px 12px", background: "var(--ai-soft)", borderRadius: 6, border: "1px solid rgba(167,139,250,0.3)", marginTop: 12 }}>
             <Icon name="sparkles" size={13}/>
-            <span style={{ fontSize: 12, color: "var(--fg-1)" }}>Bottleneck: <b>Cluster → Validate</b> (23% conversion). AI proposes auto-approval above 0.85 confidence.</span>
+            <span style={{ fontSize: 12, color: "var(--fg-1)" }}>Bottleneck: <b>Cluster → Rate</b> (23% conversion). AI proposes auto-approval above 0.85 confidence.</span>
             <div style={{ flex: 1 }}/>
             <button className="btn ai sm" onClick={() => onGo("process", "cluster")}>Review</button>
           </div>
