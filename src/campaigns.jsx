@@ -135,6 +135,13 @@ export const CampaignWorkspace = ({ campaigns, ideas: mockIdeas, clusters, parti
   const isMock = !!campaigns.find(x => x.id === campaignId);
 
   useEffect(() => {
+    // Reset state when switching campaigns
+    setIdeaStream([]);
+    setProposals([]);
+    setSelectedCluster(null);
+    setApiCampaign(null);
+    setEditing(false);
+
     const found = campaigns.find(x => x.id === campaignId);
     if (found) {
       setEditForm({ title: found.title, question: found.question || '', description: found.description || '' });
