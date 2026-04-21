@@ -297,7 +297,8 @@ export const CampaignWorkspace = ({ campaigns, ideas: mockIdeas, clusters, parti
               ) : (
                 <h1 onClick={() => setEditingTitle(true)} style={{ margin: 0, fontSize: 19, fontWeight: 600, color: "var(--fg-0)", cursor: 'pointer' }} title="Click to edit">{title || c.title}</h1>
               )}
-              {c.question && <p style={{ margin: "6px 0 0", color: "var(--fg-2)", fontSize: 13 }}>{c.question}</p>}
+              {c.question && <p style={{ margin: "6px 0 0", color: "var(--fg-2)", fontSize: 13, fontStyle: 'italic' }}>«{c.question}»</p>}
+              {c.description && <p style={{ margin: "4px 0 0", color: "var(--fg-3)", fontSize: 12.5, lineHeight: 1.5 }}>{c.description}</p>}
             </div>
             <div style={{ display: "flex", gap: 6 }}>
               <button className="btn ai sm" onClick={onOpenCapture}><Icon name="sparkles" size={12}/> Capture idea</button>
