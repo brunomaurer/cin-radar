@@ -130,6 +130,7 @@ export const CampaignWorkspace = ({ campaigns, ideas: mockIdeas, clusters, parti
   const [title, setTitle] = useState('');
   const [proposals, setProposals] = useState([]);
   const [selectedCluster, setSelectedCluster] = useState(null);
+  const [status, setStatus] = useState('active');
 
   const isMock = !!campaigns.find(x => x.id === campaignId);
 
@@ -137,6 +138,7 @@ export const CampaignWorkspace = ({ campaigns, ideas: mockIdeas, clusters, parti
     const found = campaigns.find(x => x.id === campaignId);
     if (found) {
       setTitle(found.title);
+      setStatus((found.status || 'active').toLowerCase());
       // For mock campaigns, seed the idea stream from mock data
       setIdeaStream(mockIdeas.map(i => ({
         id: i.id,
@@ -160,6 +162,7 @@ export const CampaignWorkspace = ({ campaigns, ideas: mockIdeas, clusters, parti
         const camp = r.campaign || r;
         setApiCampaign(camp);
         setTitle(camp.title);
+        setStatus((camp.status || 'active').toLowerCase());
         // Load saved ideas from campaign object
         if (camp.ideas && camp.ideas.length > 0) {
           setIdeaStream(camp.ideas);
@@ -244,6 +247,25 @@ export const CampaignWorkspace = ({ campaigns, ideas: mockIdeas, clusters, parti
     setProposals(prev => prev.filter(p => p.id !== proposalId));
   };
 
+  const statusCycle = ['active', 'open', 'closed'];
+  const statusColors = { active: 'ok', open: 'accent', closed: '' };
+  const handleStatusToggle = () => {
+    const next = statusCycle[(statusCycle.indexOf(status) + 1) % statusCycle.length];
+    setStatus(next);
+    if (!isMock) {
+      campaignsApi.update(campaignId, { status: next }).catch(() => {});
+    }
+  };
+
+  const handleDelete = () => {
+    if (!confirm('Kampagne wirklich löschen?')) return;
+    if (!isMock) {
+      campaignsApi.remove(campaignId).then(() => onBack()).catch(() => alert('Fehler beim Löschen'));
+    } else {
+      onBack();
+    }
+  };
+
   const signalCount = isMock ? (c.signals || 0) : ideaStream.length;
   const clusterCount = isMock ? (c.clusters || clusters.length) : 0;
   const proposalCount = proposals.length;
@@ -258,7 +280,9 @@ export const CampaignWorkspace = ({ campaigns, ideas: mockIdeas, clusters, parti
           <div style={{ display: "flex", alignItems: "flex-start", gap: 16 }}>
             <div style={{ flex: 1 }}>
               <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 6 }}>
-                <span className="chip ok"><span className="dot ok"/>{c.status || 'active'}</span>
+                <button onClick={handleStatusToggle} className={`chip ${statusColors[status] || ''}`} style={{ cursor: 'pointer' }} title="Klick zum Ändern">
+                  <span className={`dot ${statusColors[status] || 'accent'}`}/>{status}
+                </button>
               </div>
               {editingTitle ? (
                 <input
@@ -277,6 +301,7 @@ export const CampaignWorkspace = ({ campaigns, ideas: mockIdeas, clusters, parti
             </div>
             <div style={{ display: "flex", gap: 6 }}>
               <button className="btn ai sm" onClick={onOpenCapture}><Icon name="sparkles" size={12}/> Capture idea</button>
+              <button className="btn sm" onClick={handleDelete} style={{ color: 'var(--hot)' }} title="Kampagne löschen"><Icon name="x" size={12}/> Löschen</button>
             </div>
           </div>
 
