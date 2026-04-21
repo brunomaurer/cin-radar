@@ -596,7 +596,7 @@ const IdeaCard = ({ idea, onDelete, onEdit, clusters, onOpenCluster, availableTa
             {availableTags && availableTags.length > 0 && (
               <select className="input" style={{ fontSize: 10, padding: '1px 4px', height: 20, width: 'auto', minWidth: 50 }}
                 value="" onChange={e => { if (e.target.value) onAssignTag?.(idea.id, e.target.value); }}>
-                <option value="">+ Tag</option>
+                <option value="">+ Idea Stream</option>
                 {availableTags.filter(t => !(idea.tags || []).includes(t)).map(t => (
                   <option key={t} value={t}>{t}</option>
                 ))}
