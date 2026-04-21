@@ -96,12 +96,12 @@ export const CampaignList = ({ data, onOpen, onNewCampaign }) => {
             <div>
               <div style={{ color: "var(--fg-0)", fontSize: 13.5, fontWeight: 500 }}>{c.title}</div>
               <div style={{ display: "flex", gap: 6, marginTop: 6 }}>
-                {c.tags.map(t => <span key={t} className="chip"><Icon name="hash" size={10}/>{t}</span>)}
+                {(c.tags || []).map(t => <span key={t} className="chip"><Icon name="hash" size={10}/>{t}</span>)}
               </div>
             </div>
             <span style={{ fontSize: 12, color: "var(--fg-2)" }}>{c.owner}</span>
             <span className={"chip " + (statusColor[c.status] || "")}><span className={"dot " + (statusColor[c.status] || "accent")}/>{c.status}</span>
-            <div className="mono" style={{ fontSize: 12, color: "var(--fg-1)" }}>{c.signals} · <span style={{ color: "var(--fg-3)" }}>{c.clusters} clusters</span></div>
+            <div className="mono" style={{ fontSize: 12, color: "var(--fg-1)" }}>{c.signals || 0} · <span style={{ color: "var(--fg-3)" }}>{c.clusters || 0} clusters</span></div>
             <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
               {c.proposed > 0 && <span className="chip ai mono"><Icon name="sparkles" size={10}/>{c.proposed} new</span>}
             </div>
@@ -122,7 +122,14 @@ export const CampaignList = ({ data, onOpen, onNewCampaign }) => {
 };
 
 export const CampaignWorkspace = ({ campaigns, ideas, clusters, participants, campaignId, onBack, onOpenCapture, onOpenCluster }) => {
-  const c = campaigns.find(x => x.id === campaignId) || campaigns[0];
+  const [apiCampaign, setApiCampaign] = useState(null);
+  useEffect(() => {
+    const found = campaigns.find(x => x.id === campaignId);
+    if (!found) {
+      campaignsApi.get(campaignId).then(r => setApiCampaign(r.campaign || r)).catch(() => {});
+    }
+  }, [campaignId]);
+  const c = campaigns.find(x => x.id === campaignId) || apiCampaign || campaigns[0];
   const [selectedCluster, setSelectedCluster] = useState(null);
   const [filter, setFilter] = useState("all");
 
