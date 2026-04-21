@@ -131,6 +131,8 @@ export const CampaignWorkspace = ({ campaigns, ideas: mockIdeas, clusters, parti
   const [proposals, setProposals] = useState([]);
   const [selectedCluster, setSelectedCluster] = useState(null);
   const [status, setStatus] = useState('active');
+  const [tags, setTags] = useState([]);
+  const [newTag, setNewTag] = useState('');
 
   const isMock = !!campaigns.find(x => x.id === campaignId);
 
@@ -141,11 +143,13 @@ export const CampaignWorkspace = ({ campaigns, ideas: mockIdeas, clusters, parti
     setSelectedCluster(null);
     setApiCampaign(null);
     setEditing(false);
+    setTags([]);
 
     const found = campaigns.find(x => x.id === campaignId);
     if (found) {
       setEditForm({ title: found.title, question: found.question || '', description: found.description || '' });
       setStatus((found.status || 'active').toLowerCase());
+      setTags(found.tags || []);
       // For mock campaigns, seed the idea stream from mock data
       setIdeaStream(mockIdeas.map(i => ({
         id: i.id,
@@ -170,6 +174,7 @@ export const CampaignWorkspace = ({ campaigns, ideas: mockIdeas, clusters, parti
         setApiCampaign(camp);
         setEditForm({ title: camp.title, question: camp.question || '', description: camp.description || '' });
         setStatus((camp.status || 'active').toLowerCase());
+        setTags(camp.tags || []);
         // Load saved ideas from campaign object
         if (camp.ideas && camp.ideas.length > 0) {
           setIdeaStream(camp.ideas);
@@ -279,8 +284,9 @@ export const CampaignWorkspace = ({ campaigns, ideas: mockIdeas, clusters, parti
     }
   };
 
-  const clusterFilter = selectedCluster;
-  const filteredIdeas = clusterFilter ? ideaStream.filter(i => i.cluster === clusterFilter) : ideaStream;
+  const filteredIdeas = selectedCluster
+    ? ideaStream.filter(i => (i.tags || []).includes(selectedCluster) || i.cluster === selectedCluster || (i.text && i.text.toLowerCase().includes(selectedCluster.toLowerCase())))
+    : ideaStream;
   const signalCount = isMock ? (c.signals || 0) : ideaStream.length;
   const clusterCount = isMock ? (c.clusters || clusters.length) : 0;
   const proposalCount = proposals.length;
@@ -288,7 +294,7 @@ export const CampaignWorkspace = ({ campaigns, ideas: mockIdeas, clusters, parti
   return (
     <div style={{ display: "grid", gridTemplateColumns: "1fr 380px", height: "100%", overflow: "hidden" }}>
       {/* Left column ~65% */}
-      <div style={{ display: "flex", flexDirection: "column", minWidth: 0, borderRight: "1px solid var(--line-1)" }}>
+      <div style={{ display: "flex", flexDirection: "column", minWidth: 0, borderRight: "1px solid var(--line-1)", overflow: "hidden" }}>
         {/* Top bar */}
         <div style={{ padding: "14px 20px", borderBottom: "1px solid var(--line-1)" }}>
           <button onClick={onBack} style={{ color: "var(--fg-3)", fontSize: 11.5, display: "inline-flex", alignItems: "center", gap: 4, marginBottom: 8, background: 'none', border: 'none', cursor: 'pointer' }}><Icon name="arrowLeft" size={12}/> All campaigns</button>
@@ -377,20 +383,27 @@ export const CampaignWorkspace = ({ campaigns, ideas: mockIdeas, clusters, parti
               </button>
             )}
           </div>
-          {clusters.length > 0 && (
-            <div style={{ display: "flex", gap: 4, flexWrap: "wrap" }}>
-              <button className={`chip${!selectedCluster ? ' ai' : ''}`} onClick={() => setSelectedCluster(null)}
-                style={{ cursor: 'pointer', background: !selectedCluster ? 'rgba(96,165,250,0.15)' : 'transparent', borderColor: !selectedCluster ? 'rgba(96,165,250,0.4)' : 'var(--line-2)', color: !selectedCluster ? '#60A5FA' : 'var(--fg-3)' }}>
-                All
-              </button>
-              {clusters.map(cl => (
-                <button key={cl.id} className="chip" onClick={() => setSelectedCluster(selectedCluster === cl.id ? null : cl.id)}
-                  style={{ cursor: 'pointer', background: selectedCluster === cl.id ? `${cl.color}20` : 'transparent', borderColor: selectedCluster === cl.id ? `${cl.color}55` : 'var(--line-2)', color: selectedCluster === cl.id ? cl.color : 'var(--fg-3)' }}>
-                  {cl.proposed && <Icon name="sparkles" size={9}/>} {cl.label || cl.trendName || `Cluster ${cl.id}`}
-                </button>
-              ))}
-            </div>
-          )}
+          <div style={{ display: "flex", gap: 4, flexWrap: "wrap", alignItems: "center" }}>
+            <button className="chip" onClick={() => setSelectedCluster(null)}
+              style={{ cursor: 'pointer', background: !selectedCluster ? 'rgba(96,165,250,0.15)' : 'transparent', borderColor: !selectedCluster ? 'rgba(96,165,250,0.4)' : 'var(--line-2)', color: !selectedCluster ? '#60A5FA' : 'var(--fg-3)' }}>
+              All
+            </button>
+            {tags.map(tag => (
+              <div key={tag} className="chip" style={{ cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: 4, background: selectedCluster === tag ? 'rgba(167,139,250,0.15)' : 'transparent', borderColor: selectedCluster === tag ? 'rgba(167,139,250,0.4)' : 'var(--line-2)', color: selectedCluster === tag ? '#A78BFA' : 'var(--fg-3)' }}>
+                <span onClick={() => setSelectedCluster(selectedCluster === tag ? null : tag)}>{tag}</span>
+                <span onClick={(e) => { e.stopPropagation(); const updated = tags.filter(t => t !== tag); setTags(updated); if (selectedCluster === tag) setSelectedCluster(null); if (!isMock) campaignsApi.update(campaignId, { tags: updated }).catch(() => {}); }}
+                  style={{ cursor: 'pointer', color: 'var(--fg-4)', marginLeft: 2 }}>×</span>
+              </div>
+            ))}
+            <input
+              className="input"
+              value={newTag}
+              onChange={e => setNewTag(e.target.value)}
+              onKeyDown={e => { if (e.key === 'Enter' && newTag.trim()) { const updated = [...tags, newTag.trim()]; setTags(updated); setNewTag(''); if (!isMock) campaignsApi.update(campaignId, { tags: updated }).catch(() => {}); } }}
+              placeholder="+ Tag"
+              style={{ width: 70, fontSize: 11, padding: '2px 6px', height: 22 }}
+            />
+          </div>
         </div>
 
         <div className="scroll" style={{ flex: 1, overflow: "auto", padding: "0 20px 20px" }}>
