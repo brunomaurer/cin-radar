@@ -405,10 +405,11 @@ export const CampaignWorkspace = ({ campaigns, ideas: mockIdeas, clusters, parti
               All
             </button>
             {tags.map(tag => (
-              <div key={tag} className="chip" style={{ cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: 4, background: selectedCluster === tag ? 'rgba(167,139,250,0.15)' : 'transparent', borderColor: selectedCluster === tag ? 'rgba(167,139,250,0.4)' : 'var(--line-2)', color: selectedCluster === tag ? '#A78BFA' : 'var(--fg-3)' }}>
-                <span onClick={() => setSelectedCluster(selectedCluster === tag ? null : tag)}>{tag}</span>
+              <div key={tag} className="chip" onClick={() => setSelectedCluster(selectedCluster === tag ? null : tag)}
+                style={{ cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: 4, background: selectedCluster === tag ? 'rgba(167,139,250,0.15)' : 'transparent', borderColor: selectedCluster === tag ? 'rgba(167,139,250,0.4)' : 'var(--line-2)', color: selectedCluster === tag ? '#A78BFA' : 'var(--fg-3)' }}>
+                <span>{tag}</span>
                 <span onClick={(e) => { e.stopPropagation(); const updated = tags.filter(t => t !== tag); setTags(updated); if (selectedCluster === tag) setSelectedCluster(null); if (!isMock) campaignsApi.update(campaignId, { tags: updated }).catch(() => {}); }}
-                  style={{ cursor: 'pointer', color: 'var(--fg-4)', marginLeft: 2 }}>×</span>
+                  style={{ cursor: 'pointer', color: selectedCluster === tag ? '#A78BFA' : 'var(--fg-4)', marginLeft: 2 }}>×</span>
               </div>
             ))}
             <input
@@ -416,7 +417,7 @@ export const CampaignWorkspace = ({ campaigns, ideas: mockIdeas, clusters, parti
               value={newTag}
               onChange={e => setNewTag(e.target.value)}
               onKeyDown={e => { if (e.key === 'Enter' && newTag.trim()) { const updated = [...tags, newTag.trim()]; setTags(updated); setNewTag(''); if (!isMock) campaignsApi.update(campaignId, { tags: updated }).catch(() => {}); } }}
-              placeholder="+ Tag"
+              placeholder="+ Stream"
               style={{ width: 70, fontSize: 11, padding: '2px 6px', height: 22 }}
             />
           </div>
