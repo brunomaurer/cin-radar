@@ -249,6 +249,19 @@ export const CampaignWorkspace = ({ campaigns, ideas: mockIdeas, clusters, parti
     }
   };
 
+  const handleAssignTag = (ideaId, tag) => {
+    const updated = ideaStream.map(i => {
+      if (i.id !== ideaId) return i;
+      const existingTags = i.tags || [];
+      if (existingTags.includes(tag)) return i;
+      return { ...i, tags: [...existingTags, tag] };
+    });
+    setIdeaStream(updated);
+    if (!isMock) {
+      campaignsApi.update(campaignId, { ideas: updated }).catch(() => {});
+    }
+  };
+
   const startEdit = () => {
     setEditForm({ title: editForm.title || c.title, question: editForm.question || c.question || '', description: editForm.description || c.description || '' });
     setEditing(true);
@@ -358,16 +371,19 @@ export const CampaignWorkspace = ({ campaigns, ideas: mockIdeas, clusters, parti
           </div>
         </div>
 
-        {/* Cluster Map */}
-        {clusters.length > 0 && (
+        {/* Cluster Map — built from tags + ideas */}
+        {(tags.length > 0 || (isMock && clusters.length > 0)) && (
           <div style={{ padding: "12px 20px", borderBottom: "1px solid var(--line-1)", background: "var(--bg-1)" }}>
             <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 8 }}>
               <span style={{ fontSize: 12, fontWeight: 600, color: "var(--fg-0)" }}>Cluster Map</span>
-              <span className="chip ai mono" style={{ fontSize: 9 }}><Icon name="sparkles" size={9}/>live</span>
               <div style={{ flex: 1 }}/>
-              <span className="mono" style={{ fontSize: 10.5, color: "var(--fg-3)" }}>{clusters.length} clusters</span>
+              <span className="mono" style={{ fontSize: 10.5, color: "var(--fg-3)" }}>{tags.length || clusters.length} clusters · {ideaStream.filter(i => (i.tags || []).length > 0 || i.cluster).length} zugeordnet</span>
             </div>
-            <ClusterMap clusters={clusters} selected={selectedCluster} onSelect={setSelectedCluster} onOpenCluster={onOpenCluster}/>
+            {isMock && clusters.length > 0 ? (
+              <ClusterMap clusters={clusters} selected={selectedCluster} onSelect={setSelectedCluster} onOpenCluster={onOpenCluster}/>
+            ) : (
+              <IdeaClusterMap tags={tags} ideas={ideaStream} selected={selectedCluster} onSelect={setSelectedCluster}/>
+            )}
           </div>
         )}
 
@@ -443,7 +459,7 @@ export const CampaignWorkspace = ({ campaigns, ideas: mockIdeas, clusters, parti
           )}
 
           {filteredIdeas.map(i => (
-            <IdeaCard key={i.id} idea={i} onDelete={handleDeleteIdea} onEdit={handleEditIdea} clusters={clusters} onOpenCluster={onOpenCluster} />
+            <IdeaCard key={i.id} idea={i} onDelete={handleDeleteIdea} onEdit={handleEditIdea} clusters={clusters} onOpenCluster={onOpenCluster} availableTags={tags} onAssignTag={handleAssignTag} />
           ))}
 
           {/* Manual idea input */}
@@ -524,7 +540,7 @@ export const CampaignWorkspace = ({ campaigns, ideas: mockIdeas, clusters, parti
   );
 };
 
-const IdeaCard = ({ idea, onDelete, onEdit, clusters, onOpenCluster }) => {
+const IdeaCard = ({ idea, onDelete, onEdit, clusters, onOpenCluster, availableTags, onAssignTag }) => {
   const [editing, setEditing] = useState(false);
   const [editText, setEditText] = useState(idea.text);
 
@@ -574,16 +590,69 @@ const IdeaCard = ({ idea, onDelete, onEdit, clusters, onOpenCluster }) => {
         <>
           <div style={{ fontSize: 13, color: "var(--fg-0)", lineHeight: 1.5, marginBottom: 10 }}>{idea.text}</div>
           <div style={{ display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap" }}>
-            {cluster && (
-              <button onClick={() => onOpenCluster(cluster.id)} className="chip" style={{ background: cluster.color + "1a", borderColor: cluster.color + "55", color: cluster.color }}>
-                <Icon name="sparkles" size={10}/> {cluster.label}
-              </button>
+            {(idea.tags || []).map(t => (
+              <span key={t} className="chip" style={{ background: 'rgba(167,139,250,0.12)', borderColor: 'rgba(167,139,250,0.3)', color: '#A78BFA', fontSize: 10 }}>{t}</span>
+            ))}
+            {availableTags && availableTags.length > 0 && (
+              <select className="input" style={{ fontSize: 10, padding: '1px 4px', height: 20, width: 'auto', minWidth: 50 }}
+                value="" onChange={e => { if (e.target.value) onAssignTag?.(idea.id, e.target.value); }}>
+                <option value="">+ Tag</option>
+                {availableTags.filter(t => !(idea.tags || []).includes(t)).map(t => (
+                  <option key={t} value={t}>{t}</option>
+                ))}
+              </select>
             )}
             <div style={{ flex: 1 }}/>
             <button className="btn ghost sm" style={{ height: 24, fontSize: 11 }} onClick={() => { setEditText(idea.text); setEditing(true); }}><Icon name="edit" size={10}/> Edit</button>
           </div>
         </>
       )}
+    </div>
+  );
+};
+
+const TAG_COLORS = ['#60A5FA', '#A78BFA', '#34D399', '#FBBF24', '#F472B6', '#FB923C', '#2DD4BF', '#E879F9'];
+
+const IdeaClusterMap = ({ tags, ideas, selected, onSelect }) => {
+  const W = 780, H = 220;
+  // Build cluster data from tags
+  const tagClusters = tags.map((tag, i) => {
+    const count = ideas.filter(idea => (idea.tags || []).includes(tag)).length;
+    const col = TAG_COLORS[i % TAG_COLORS.length];
+    // Distribute tags evenly across the map
+    const cols = Math.min(tags.length, 4);
+    const row = Math.floor(i / cols);
+    const colIdx = i % cols;
+    const cx = (W / (cols + 1)) * (colIdx + 1);
+    const cy = H * 0.35 + row * (H * 0.4);
+    return { id: tag, label: tag, count, color: col, cx, cy, r: 18 + Math.min(count, 10) * 5 };
+  });
+
+  const unassigned = ideas.filter(i => !(i.tags || []).length).length;
+
+  return (
+    <div style={{ position: "relative", width: "100%", height: H, borderRadius: 10, overflow: "hidden", background: "radial-gradient(ellipse at 30% 30%, rgba(59,130,246,0.06), transparent 60%), var(--bg-0)", border: "1px solid var(--line-1)" }}>
+      <svg viewBox={`0 0 ${W} ${H}`} width="100%" height="100%" preserveAspectRatio="xMidYMid meet">
+        {[0.5].map(g => (
+          <line key={g} y1={H*g} y2={H*g} x1="0" x2={W} stroke="var(--line-1)" strokeDasharray="2 6"/>
+        ))}
+        {tagClusters.map(cl => {
+          const isSel = selected === cl.id;
+          return (
+            <g key={cl.id} style={{ cursor: "pointer" }} onClick={() => onSelect(isSel ? null : cl.id)}>
+              <circle cx={cl.cx} cy={cl.cy} r={cl.r + 12} fill={cl.color} opacity="0.08"/>
+              <circle cx={cl.cx} cy={cl.cy} r={cl.r + 4} fill={cl.color} opacity="0.18"/>
+              <circle cx={cl.cx} cy={cl.cy} r={cl.r} fill={cl.color} fillOpacity={isSel ? 0.9 : 0.5} stroke={isSel ? "#fff" : cl.color} strokeWidth={isSel ? 2 : 1}/>
+              <text x={cl.cx} y={cl.cy + 3} fontSize="12" fill={isSel ? "#0B1426" : "#fff"} fontWeight="700" textAnchor="middle">{cl.count}</text>
+              <text x={cl.cx} y={cl.cy + cl.r + 14} fontSize="10" fill="var(--fg-2)" textAnchor="middle" fontWeight="500">{cl.label}</text>
+            </g>
+          );
+        })}
+      </svg>
+      <div style={{ position: "absolute", left: 12, bottom: 8, display: "flex", gap: 12, fontSize: 10, color: "var(--fg-3)" }} className="mono">
+        <span>◉ size = # ideas</span>
+        {unassigned > 0 && <span style={{ color: 'var(--warn)' }}>{unassigned} unassigned</span>}
+      </div>
     </div>
   );
 };
