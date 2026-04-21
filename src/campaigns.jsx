@@ -271,6 +271,7 @@ export const CampaignWorkspace = ({ campaigns, ideas: mockIdeas, clusters, parti
     }
   };
 
+  const filteredIdeas = selectedCluster ? ideaStream.filter(i => i.cluster === selectedCluster) : ideaStream;
   const signalCount = isMock ? (c.signals || 0) : ideaStream.length;
   const clusterCount = isMock ? (c.clusters || clusters.length) : 0;
   const proposalCount = proposals.length;
@@ -356,14 +357,30 @@ export const CampaignWorkspace = ({ campaigns, ideas: mockIdeas, clusters, parti
         )}
 
         {/* Idea Stream */}
-        <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "12px 20px", borderBottom: "1px solid var(--line-1)" }}>
-          <span style={{ fontSize: 12.5, fontWeight: 600, color: "var(--fg-0)" }}>Idea Stream</span>
-          <span className="mono" style={{ fontSize: 11, color: "var(--fg-3)" }}>{ideaStream.length} ideas</span>
-          <div style={{ flex: 1 }}/>
-          {ideaStream.length > 0 && (
-            <button className="btn ai sm" onClick={handleGenerateIdeas} disabled={generating}>
-              <Icon name="sparkles" size={12}/> {generating ? 'Generating...' : 'Generate more'}
-            </button>
+        <div style={{ padding: "12px 20px", borderBottom: "1px solid var(--line-1)" }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: clusters.length > 0 ? 8 : 0 }}>
+            <span style={{ fontSize: 12.5, fontWeight: 600, color: "var(--fg-0)" }}>Idea Stream</span>
+            <span className="mono" style={{ fontSize: 11, color: "var(--fg-3)" }}>{filteredIdeas.length}{selectedCluster ? ` / ${ideaStream.length}` : ''} ideas</span>
+            <div style={{ flex: 1 }}/>
+            {ideaStream.length > 0 && (
+              <button className="btn ai sm" onClick={handleGenerateIdeas} disabled={generating}>
+                <Icon name="sparkles" size={12}/> {generating ? 'Generating...' : 'Generate more'}
+              </button>
+            )}
+          </div>
+          {clusters.length > 0 && (
+            <div style={{ display: "flex", gap: 4, flexWrap: "wrap" }}>
+              <button className={`chip${!selectedCluster ? ' ai' : ''}`} onClick={() => setSelectedCluster(null)}
+                style={{ cursor: 'pointer', background: !selectedCluster ? 'rgba(96,165,250,0.15)' : 'transparent', borderColor: !selectedCluster ? 'rgba(96,165,250,0.4)' : 'var(--line-2)', color: !selectedCluster ? '#60A5FA' : 'var(--fg-3)' }}>
+                All
+              </button>
+              {clusters.map(cl => (
+                <button key={cl.id} className="chip" onClick={() => setSelectedCluster(selectedCluster === cl.id ? null : cl.id)}
+                  style={{ cursor: 'pointer', background: selectedCluster === cl.id ? `${cl.color}20` : 'transparent', borderColor: selectedCluster === cl.id ? `${cl.color}55` : 'var(--line-2)', color: selectedCluster === cl.id ? cl.color : 'var(--fg-3)' }}>
+                  {cl.proposed && <Icon name="sparkles" size={9}/>} {cl.label || cl.trendName || `Cluster ${cl.id}`}
+                </button>
+              ))}
+            </div>
           )}
         </div>
 
@@ -403,7 +420,7 @@ export const CampaignWorkspace = ({ campaigns, ideas: mockIdeas, clusters, parti
             </div>
           )}
 
-          {ideaStream.map(i => (
+          {filteredIdeas.map(i => (
             <IdeaCard key={i.id} idea={i} onDelete={handleDeleteIdea} onEdit={handleEditIdea} clusters={clusters} onOpenCluster={onOpenCluster} />
           ))}
 
@@ -549,7 +566,7 @@ const ClusterMap = ({ clusters, selected, onSelect, onOpenCluster }) => {
   const W = 780, H = 260;
   return (
     <div style={{ position: "relative", width: "100%", height: H, borderRadius: 10, overflow: "hidden", background: "radial-gradient(ellipse at 30% 30%, rgba(59,130,246,0.08), transparent 60%), radial-gradient(ellipse at 70% 70%, rgba(167,139,250,0.08), transparent 60%), var(--bg-0)", border: "1px solid var(--line-1)" }}>
-      <svg viewBox={`0 0 ${W} ${H}`} width="100%" height="100%" preserveAspectRatio="none">
+      <svg viewBox={`0 0 ${W} ${H}`} width="100%" height="100%" preserveAspectRatio="xMidYMid meet">
         {[0.25, 0.5, 0.75].map(g => (
           <g key={g}>
             <line x1={W*g} x2={W*g} y1="0" y2={H} stroke="var(--line-1)" strokeDasharray="2 6"/>
