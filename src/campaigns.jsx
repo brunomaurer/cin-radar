@@ -126,8 +126,8 @@ export const CampaignWorkspace = ({ campaigns, ideas: mockIdeas, clusters, parti
   const [ideaStream, setIdeaStream] = useState([]);
   const [generating, setGenerating] = useState(false);
   const [newIdeaText, setNewIdeaText] = useState('');
-  const [editingTitle, setEditingTitle] = useState(false);
-  const [title, setTitle] = useState('');
+  const [editing, setEditing] = useState(false);
+  const [editForm, setEditForm] = useState({ title: '', question: '', description: '' });
   const [proposals, setProposals] = useState([]);
   const [selectedCluster, setSelectedCluster] = useState(null);
   const [status, setStatus] = useState('active');
@@ -137,7 +137,7 @@ export const CampaignWorkspace = ({ campaigns, ideas: mockIdeas, clusters, parti
   useEffect(() => {
     const found = campaigns.find(x => x.id === campaignId);
     if (found) {
-      setTitle(found.title);
+      setEditForm({ title: found.title, question: found.question || '', description: found.description || '' });
       setStatus((found.status || 'active').toLowerCase());
       // For mock campaigns, seed the idea stream from mock data
       setIdeaStream(mockIdeas.map(i => ({
@@ -161,7 +161,7 @@ export const CampaignWorkspace = ({ campaigns, ideas: mockIdeas, clusters, parti
       campaignsApi.get(campaignId).then(r => {
         const camp = r.campaign || r;
         setApiCampaign(camp);
-        setTitle(camp.title);
+        setEditForm({ title: camp.title, question: camp.question || '', description: camp.description || '' });
         setStatus((camp.status || 'active').toLowerCase());
         // Load saved ideas from campaign object
         if (camp.ideas && camp.ideas.length > 0) {
@@ -236,10 +236,15 @@ export const CampaignWorkspace = ({ campaigns, ideas: mockIdeas, clusters, parti
     }
   };
 
-  const handleTitleSave = () => {
-    setEditingTitle(false);
-    if (!isMock && title !== c.title) {
-      campaignsApi.update(campaignId, { title }).catch(() => {});
+  const startEdit = () => {
+    setEditForm({ title: editForm.title || c.title, question: editForm.question || c.question || '', description: editForm.description || c.description || '' });
+    setEditing(true);
+  };
+  const cancelEdit = () => setEditing(false);
+  const saveEdit = () => {
+    setEditing(false);
+    if (!isMock) {
+      campaignsApi.update(campaignId, editForm).catch(() => {});
     }
   };
 
@@ -284,25 +289,36 @@ export const CampaignWorkspace = ({ campaigns, ideas: mockIdeas, clusters, parti
                   <span className={`dot ${statusColors[status] || 'accent'}`}/>{status}
                 </button>
               </div>
-              {editingTitle ? (
-                <input
-                  className="input"
-                  value={title}
-                  onChange={e => setTitle(e.target.value)}
-                  onBlur={handleTitleSave}
-                  onKeyDown={e => e.key === 'Enter' && handleTitleSave()}
-                  autoFocus
-                  style={{ fontSize: 19, fontWeight: 600, color: "var(--fg-0)", width: '100%', padding: '2px 6px' }}
-                />
+              {editing ? (
+                <>
+                  <input className="input" value={editForm.title} onChange={e => setEditForm(f => ({ ...f, title: e.target.value }))} autoFocus
+                    style={{ fontSize: 19, fontWeight: 600, color: "var(--fg-0)", width: '100%', marginBottom: 8 }} placeholder="Titel" />
+                  <input className="input" value={editForm.question} onChange={e => setEditForm(f => ({ ...f, question: e.target.value }))}
+                    style={{ width: '100%', fontSize: 13, marginBottom: 8 }} placeholder="Leitfrage" />
+                  <textarea className="input" value={editForm.description} onChange={e => setEditForm(f => ({ ...f, description: e.target.value }))}
+                    rows={4} style={{ width: '100%', height: 'auto', fontSize: 12.5, fontFamily: 'inherit', lineHeight: 1.5, padding: '10px 12px', resize: 'vertical' }} placeholder="Beschreibung" />
+                </>
               ) : (
-                <h1 onClick={() => setEditingTitle(true)} style={{ margin: 0, fontSize: 19, fontWeight: 600, color: "var(--fg-0)", cursor: 'pointer' }} title="Click to edit">{title || c.title}</h1>
+                <>
+                  <h1 style={{ margin: 0, fontSize: 19, fontWeight: 600, color: "var(--fg-0)" }}>{editForm.title || c.title}</h1>
+                  {(editForm.question || c.question) && <p style={{ margin: "6px 0 0", color: "var(--fg-2)", fontSize: 13, fontStyle: 'italic' }}>«{editForm.question || c.question}»</p>}
+                  {(editForm.description || c.description) && <p style={{ margin: "4px 0 0", color: "var(--fg-3)", fontSize: 12.5, lineHeight: 1.5 }}>{editForm.description || c.description}</p>}
+                </>
               )}
-              {c.question && <p style={{ margin: "6px 0 0", color: "var(--fg-2)", fontSize: 13, fontStyle: 'italic' }}>«{c.question}»</p>}
-              {c.description && <p style={{ margin: "4px 0 0", color: "var(--fg-3)", fontSize: 12.5, lineHeight: 1.5 }}>{c.description}</p>}
             </div>
-            <div style={{ display: "flex", gap: 6 }}>
-              <button className="btn ai sm" onClick={onOpenCapture}><Icon name="plus" size={12}/> Neuer Trend</button>
-              <button className="btn sm" onClick={handleDelete} style={{ color: 'var(--hot)' }} title="Kampagne löschen"><Icon name="x" size={12}/> Löschen</button>
+            <div style={{ display: "flex", gap: 6, flexShrink: 0 }}>
+              {editing ? (
+                <>
+                  <button className="btn sm" onClick={cancelEdit}>Abbrechen</button>
+                  <button className="btn primary sm" onClick={saveEdit}><Icon name="check" size={13}/> Speichern</button>
+                </>
+              ) : (
+                <>
+                  <button className="btn sm" onClick={startEdit}><Icon name="edit" size={13}/> Bearbeiten</button>
+                  <button className="btn ai sm" onClick={onOpenCapture}><Icon name="plus" size={12}/> Neuer Trend</button>
+                  <button className="btn sm" onClick={handleDelete} style={{ color: 'var(--hot)' }} title="Kampagne löschen"><Icon name="x" size={12}/></button>
+                </>
+              )}
             </div>
           </div>
 
