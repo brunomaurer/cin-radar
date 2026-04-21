@@ -26,7 +26,7 @@ Return a JSON array where each item has:
 Return ONLY the JSON array, no other text.`;
 
     const message = await anthropic.messages.create({
-      model: 'claude-haiku-4-20250414',
+      model: 'claude-haiku-4-5-20251001',
       max_tokens: 1500,
       messages: [{ role: 'user', content: prompt }],
     });

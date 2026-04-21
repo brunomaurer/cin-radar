@@ -337,11 +337,31 @@ export const CampaignWorkspace = ({ campaigns, ideas: mockIdeas, clusters, parti
 
         <div className="scroll" style={{ flex: 1, overflow: "auto", padding: "0 20px 20px" }}>
           {ideaStream.length === 0 && !generating && (
-            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '60px 20px', textAlign: 'center' }}>
-              <div style={{ fontSize: 13, color: 'var(--fg-2)', marginBottom: 16 }}>No ideas yet. Generate AI idea seeds to get started.</div>
-              <button className="btn ai" onClick={handleGenerateIdeas} disabled={generating} style={{ padding: '10px 20px', fontSize: 13 }}>
-                <Icon name="sparkles" size={14}/> Generate Ideas
-              </button>
+            <div style={{ padding: '40px 20px' }}>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr auto 1fr', gap: 16, alignItems: 'center', marginBottom: 24 }}>
+                <div style={{ textAlign: 'center' }}>
+                  <button className="btn ai" onClick={handleGenerateIdeas} disabled={generating} style={{ padding: '10px 20px', fontSize: 13, width: '100%' }}>
+                    <Icon name="sparkles" size={14}/> Generate Idea Stream
+                  </button>
+                  <div style={{ fontSize: 11, color: 'var(--fg-3)', marginTop: 6 }}>AI erstellt 5-8 Ideen basierend auf Titel & Beschreibung</div>
+                </div>
+                <div style={{ color: 'var(--fg-3)', fontSize: 12 }}>oder</div>
+                <div style={{ textAlign: 'center' }}>
+                  <div style={{ fontSize: 12, color: 'var(--fg-2)', marginBottom: 8 }}>Eigene Ideen erfassen</div>
+                </div>
+              </div>
+              <textarea
+                className="input"
+                placeholder="Eigene Idee, Beobachtung oder Hypothese eingeben… (Enter zum Hinzufügen)"
+                value={newIdeaText}
+                onChange={e => setNewIdeaText(e.target.value)}
+                onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleAddIdea(); } }}
+                rows={3}
+                style={{ width: '100%', resize: 'vertical', height: 'auto', fontFamily: 'inherit', fontSize: 13, padding: '10px 12px' }}
+              />
+              {newIdeaText.trim() && (
+                <button className="btn sm" onClick={handleAddIdea} style={{ marginTop: 8 }}>Hinzufügen</button>
+              )}
             </div>
           )}
 
