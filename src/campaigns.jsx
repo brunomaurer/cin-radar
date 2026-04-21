@@ -222,6 +222,7 @@ export const CampaignWorkspace = ({ campaigns, ideas: mockIdeas, clusters, parti
     const updated = [...ideaStream, newIdea];
     setIdeaStream(updated);
     setNewIdeaText('');
+    setSelectedCluster(null); // show all so the new idea is visible
     if (!isMock) {
       campaignsApi.update(campaignId, { ideas: updated }).catch(() => {});
     }
@@ -278,7 +279,8 @@ export const CampaignWorkspace = ({ campaigns, ideas: mockIdeas, clusters, parti
     }
   };
 
-  const filteredIdeas = selectedCluster ? ideaStream.filter(i => i.cluster === selectedCluster) : ideaStream;
+  const clusterFilter = selectedCluster;
+  const filteredIdeas = clusterFilter ? ideaStream.filter(i => i.cluster === clusterFilter) : ideaStream;
   const signalCount = isMock ? (c.signals || 0) : ideaStream.length;
   const clusterCount = isMock ? (c.clusters || clusters.length) : 0;
   const proposalCount = proposals.length;
@@ -562,8 +564,8 @@ const IdeaCard = ({ idea, onDelete, onEdit, clusters, onOpenCluster }) => {
           </button>
         )}
         <div style={{ flex: 1 }}/>
-        <button className="btn ghost sm" style={{ height: 24, fontSize: 11 }} onClick={() => { setEditText(idea.text); setEditing(true); }}>Edit</button>
-        <button className="btn ghost sm" style={{ height: 24, fontSize: 11, color: 'var(--fg-3)' }} onClick={() => onDelete(idea.id)}>Delete</button>
+        <button className="btn ghost sm" style={{ height: 24, fontSize: 11 }} onClick={() => { setEditText(idea.text); setEditing(true); }}><Icon name="edit" size={10}/> Edit</button>
+        <button className="btn ghost sm" style={{ height: 24, fontSize: 11, color: 'var(--hot)' }} onClick={() => onDelete(idea.id)}><Icon name="x" size={10}/> Löschen</button>
       </div>
     </div>
   );
