@@ -141,7 +141,7 @@ const App = () => {
     <div style={{ display: "flex", height: "100vh", overflow: "hidden" }} data-screen-label={`CIN · ${route}`}>
       <Sidebar route={navRoute} setRoute={r => goTo(r)} collapsed={sidebarCollapsed} setCollapsed={setSidebarCollapsed} t={t}/>
       <div style={{ flex: 1, display: "flex", flexDirection: "column", minWidth: 0 }}>
-        <Header t={t} lang={lang} setLang={setLang} onOpenAI={() => setAiOpen(true)} aiPending={data.aiInbox.length} onSearch={setSearch} search={search} onNewTrend={() => setNewTrendOpen(true)} unreadNotifs={unreadNotifs} onMarkRead={() => { notificationsApi.markRead().then(() => setUnreadNotifs(0)).catch(() => {}); }}/>
+        <Header t={t} lang={lang} setLang={setLang} onOpenAI={() => setAiOpen(true)} aiPending={data.aiInbox.length} onSearch={q => { setSearch(q); if (q && route !== 'explore') navigate(buildPath({ route: 'explore' })); }} search={search} onNewTrend={() => setNewTrendOpen(true)} unreadNotifs={unreadNotifs} onMarkRead={() => { notificationsApi.markRead().then(() => setUnreadNotifs(0)).catch(() => {}); }}/>
         <main style={{ flex: 1, overflow: "hidden", background: "var(--bg-0)" }}>{content}</main>
       </div>
       <AIScout open={aiOpen} onClose={() => setAiOpen(false)} data={data} t={t}/>
