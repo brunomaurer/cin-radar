@@ -35,7 +35,7 @@ const NewCampaignDialog = ({ open, onClose, onCreated }) => {
         <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
           <input className="input" placeholder="Titel *" value={form.title} onChange={e => set('title', e.target.value)} autoFocus />
           <input className="input" placeholder="Leitfrage" value={form.question} onChange={e => set('question', e.target.value)} />
-          <textarea className="input" placeholder="Beschreibung — Ziel, Kontext, erwartete Ergebnisse…" value={form.description} onChange={e => set('description', e.target.value)} rows={6} style={{ resize: 'vertical', width: '100%', fontFamily: 'inherit', fontSize: 13, lineHeight: 1.6, padding: '10px 12px' }} />
+          <textarea className="input" placeholder="Beschreibung — Ziel, Kontext, erwartete Ergebnisse…" value={form.description} onChange={e => set('description', e.target.value)} rows={6} style={{ resize: 'vertical', width: '100%', height: 'auto', fontFamily: 'inherit', fontSize: 13, lineHeight: 1.6, padding: '10px 12px' }} />
           <input className="input" placeholder="Owner" value={form.owner} onChange={e => set('owner', e.target.value)} />
           <input className="input" placeholder="Tags (kommagetrennt)" value={form.tags} onChange={e => set('tags', e.target.value)} />
         </div>
