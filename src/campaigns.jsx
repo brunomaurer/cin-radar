@@ -132,6 +132,7 @@ export const CampaignWorkspace = ({ campaigns, ideas: mockIdeas, clusters, parti
   const [selectedCluster, setSelectedCluster] = useState(null);
   const [status, setStatus] = useState('active');
   const [tags, setTags] = useState([]);
+  const [tagColors, setTagColors] = useState({});
   const [newTag, setNewTag] = useState('');
 
   const isMock = !!campaigns.find(x => x.id === campaignId);
@@ -150,6 +151,7 @@ export const CampaignWorkspace = ({ campaigns, ideas: mockIdeas, clusters, parti
       setEditForm({ title: found.title, question: found.question || '', description: found.description || '' });
       setStatus((found.status || 'active').toLowerCase());
       setTags(found.tags || []);
+      setTagColors(found.tagColors || {});
       // For mock campaigns, seed the idea stream from mock data
       setIdeaStream(mockIdeas.map(i => ({
         id: i.id,
@@ -175,6 +177,7 @@ export const CampaignWorkspace = ({ campaigns, ideas: mockIdeas, clusters, parti
         setEditForm({ title: camp.title, question: camp.question || '', description: camp.description || '' });
         setStatus((camp.status || 'active').toLowerCase());
         setTags(camp.tags || []);
+        setTagColors(camp.tagColors || {});
         // Load saved ideas from campaign object
         if (camp.ideas && camp.ideas.length > 0) {
           setIdeaStream(camp.ideas);
@@ -408,7 +411,7 @@ export const CampaignWorkspace = ({ campaigns, ideas: mockIdeas, clusters, parti
             {isMock && clusters.length > 0 ? (
               <ClusterMap clusters={clusters} selected={selectedCluster} onSelect={setSelectedCluster} onOpenCluster={onOpenCluster}/>
             ) : (
-              <IdeaClusterMap tags={tags} ideas={ideaStream} selected={selectedCluster} onSelect={setSelectedCluster}/>
+              <IdeaClusterMap tags={tags} tagColors={tagColors} ideas={ideaStream} selected={selectedCluster} onSelect={setSelectedCluster}/>
             )}
           </div>
         )}
@@ -430,14 +433,35 @@ export const CampaignWorkspace = ({ campaigns, ideas: mockIdeas, clusters, parti
               style={{ cursor: 'pointer', background: !selectedCluster ? 'rgba(96,165,250,0.15)' : 'transparent', borderColor: !selectedCluster ? 'rgba(96,165,250,0.4)' : 'var(--line-2)', color: !selectedCluster ? '#60A5FA' : 'var(--fg-3)' }}>
               All
             </button>
-            {tags.map(tag => (
+            {tags.map((tag, idx) => {
+              const col = tagColors[tag] || TAG_COLORS[idx % TAG_COLORS.length];
+              return (
               <div key={tag} className="chip" onClick={() => setSelectedCluster(selectedCluster === tag ? null : tag)}
-                style={{ cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: 4, background: selectedCluster === tag ? 'rgba(167,139,250,0.15)' : 'transparent', borderColor: selectedCluster === tag ? 'rgba(167,139,250,0.4)' : 'var(--line-2)', color: selectedCluster === tag ? '#A78BFA' : 'var(--fg-3)' }}>
+                style={{ cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: 4, background: selectedCluster === tag ? `${col}25` : 'transparent', borderColor: selectedCluster === tag ? `${col}66` : 'var(--line-2)', color: selectedCluster === tag ? col : 'var(--fg-3)' }}>
+                <span style={{ width: 8, height: 8, borderRadius: '50%', background: col, flexShrink: 0, cursor: 'pointer' }} title="Farbe ändern" onClick={(e) => {
+                  e.stopPropagation();
+                  const nextIdx = (TAG_COLORS.indexOf(col) + 1) % TAG_COLORS.length;
+                  const newColors = { ...tagColors, [tag]: TAG_COLORS[nextIdx] };
+                  setTagColors(newColors);
+                  if (!isMock) campaignsApi.update(campaignId, { tagColors: newColors }).catch(() => {});
+                }}/>
                 <span>{tag}</span>
-                <span onClick={(e) => { e.stopPropagation(); const updated = tags.filter(t => t !== tag); setTags(updated); if (selectedCluster === tag) setSelectedCluster(null); if (!isMock) campaignsApi.update(campaignId, { tags: updated }).catch(() => {}); }}
-                  style={{ cursor: 'pointer', color: selectedCluster === tag ? '#A78BFA' : 'var(--fg-4)', marginLeft: 2 }}>×</span>
+                <span onClick={(e) => {
+                    e.stopPropagation();
+                    const updatedTags = tags.filter(t => t !== tag);
+                    setTags(updatedTags);
+                    if (selectedCluster === tag) setSelectedCluster(null);
+                    // Remove tag from all ideas
+                    const updatedIdeas = ideaStream.map(i => ({ ...i, tags: (i.tags || []).filter(t => t !== tag) }));
+                    setIdeaStream(updatedIdeas);
+                    const { [tag]: _, ...updatedColors } = tagColors;
+                    setTagColors(updatedColors);
+                    if (!isMock) campaignsApi.update(campaignId, { tags: updatedTags, tagColors: updatedColors, ideas: updatedIdeas }).catch(() => {});
+                  }}
+                  style={{ cursor: 'pointer', color: selectedCluster === tag ? col : 'var(--fg-4)', marginLeft: 2 }}>×</span>
               </div>
-            ))}
+              );
+            })}
             <input
               className="input"
               value={newTag}
@@ -659,12 +683,12 @@ const IdeaCard = ({ idea, onDelete, onEdit, clusters, onOpenCluster, availableTa
 
 const TAG_COLORS = ['#60A5FA', '#A78BFA', '#34D399', '#FBBF24', '#F472B6', '#FB923C', '#2DD4BF', '#E879F9'];
 
-const IdeaClusterMap = ({ tags, ideas, selected, onSelect }) => {
+const IdeaClusterMap = ({ tags, tagColors, ideas, selected, onSelect }) => {
   const W = 780, H = 220;
   // Build cluster data from tags
   const tagClusters = tags.map((tag, i) => {
     const count = ideas.filter(idea => (idea.tags || []).includes(tag)).length;
-    const col = TAG_COLORS[i % TAG_COLORS.length];
+    const col = (tagColors && tagColors[tag]) || TAG_COLORS[i % TAG_COLORS.length];
     // Distribute tags evenly across the map
     const cols = Math.min(tags.length, 4);
     const row = Math.floor(i / cols);
