@@ -134,8 +134,8 @@ const NewClusterDialog = ({ open, onClose, onCreated }) => {
     if (!form.label.trim()) return;
     setSaving(true);
     try {
-      const cluster = await clustersApi.create({ ...form, origin: 'manual' });
-      onCreated(cluster);
+      const res = await clustersApi.create({ ...form, origin: 'manual' });
+      onCreated(res.cluster || res);
       onClose();
       setForm({ label: '', description: '' });
     } catch (e) {
@@ -150,7 +150,7 @@ const NewClusterDialog = ({ open, onClose, onCreated }) => {
       <div className="card" style={{ width: 400, padding: 24 }} onClick={e => e.stopPropagation()}>
         <h3 style={{ margin: '0 0 16px', fontSize: 16, color: 'var(--fg-0)' }}>Neuer Cluster</h3>
         <input className="input" placeholder="Label *" value={form.label} onChange={e => setForm(f => ({ ...f, label: e.target.value }))} autoFocus style={{ marginBottom: 10, width: '100%' }} />
-        <textarea className="input" placeholder="Beschreibung" value={form.description} onChange={e => setForm(f => ({ ...f, description: e.target.value }))} rows={3} style={{ resize: 'vertical', width: '100%' }} />
+        <textarea className="input" placeholder="Beschreibung" value={form.description} onChange={e => setForm(f => ({ ...f, description: e.target.value }))} rows={3} style={{ resize: 'vertical', width: '100%', height: 'auto', fontFamily: 'inherit', fontSize: 13, padding: '10px 12px' }} />
         <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8, marginTop: 16 }}>
           <button className="btn sm" onClick={onClose}>Abbrechen</button>
           <button className="btn ai sm" onClick={handleSave} disabled={saving || !form.label.trim()}>
