@@ -1,7 +1,7 @@
 // Campaigns list + workspace + capture dialog + cluster review
 import { useState, useEffect } from 'react';
 import { Icon, BarMeter, DimensionDot, StageBadge } from './ui.jsx';
-import { campaignsApi, generateIdeasApi } from './api.js';
+import { campaignsApi, generateIdeasApi, generateProposalsApi } from './api.js';
 
 const NewCampaignDialog = ({ open, onClose, onCreated }) => {
   const [form, setForm] = useState({ title: '', description: '', question: '', owner: '', tags: '' });
@@ -262,6 +262,32 @@ export const CampaignWorkspace = ({ campaigns, ideas: mockIdeas, clusters, parti
     }
   };
 
+  const [generatingProposals, setGeneratingProposals] = useState(false);
+  const handleGenerateProposals = async () => {
+    if (ideaStream.length === 0) return;
+    setGeneratingProposals(true);
+    try {
+      const result = await generateProposalsApi.generate({
+        title: editForm.title || c.title,
+        ideas: ideaStream.map(i => ({ text: i.text, tags: i.tags })),
+        tags,
+      });
+      const newProposals = (result.proposals || []).map((p, idx) => ({
+        id: `prop-${Date.now()}-${idx}`,
+        title: p.title,
+        confidence: p.confidence || 0.7,
+        sourceIdeas: Array.isArray(p.sourceIdeas) ? p.sourceIdeas.length : 0,
+        summary: p.summary || '',
+        stream: p.stream || '',
+      }));
+      setProposals(prev => [...prev, ...newProposals]);
+    } catch (e) {
+      alert('Fehler: ' + e.message);
+    } finally {
+      setGeneratingProposals(false);
+    }
+  };
+
   const startEdit = () => {
     setEditForm({ title: editForm.title || c.title, question: editForm.question || c.question || '', description: editForm.description || c.description || '' });
     setEditing(true);
@@ -493,28 +519,47 @@ export const CampaignWorkspace = ({ campaigns, ideas: mockIdeas, clusters, parti
           <div style={{ fontSize: 11.5, color: "var(--fg-3)", marginTop: 6 }}>Trend candidates suggested by AI based on ideas and signals.</div>
         </div>
         <div className="scroll" style={{ flex: 1, overflow: "auto", padding: 14 }}>
-          {proposals.length === 0 && (
+          {proposals.length === 0 && !generatingProposals && (
             <div style={{ padding: '40px 16px', textAlign: 'center' }}>
-              <div style={{ fontSize: 12, color: 'var(--fg-3)', lineHeight: 1.6 }}>
-                Add more ideas to get AI proposals. As patterns emerge in your idea stream, the AI will suggest trend candidates here.
+              <div style={{ fontSize: 12, color: 'var(--fg-3)', lineHeight: 1.6, marginBottom: 16 }}>
+                {ideaStream.length === 0
+                  ? 'Erfasse zuerst Ideen im Idea Stream, dann kann die AI Trend-Kandidaten vorschlagen.'
+                  : `${ideaStream.length} Ideen vorhanden — AI kann daraus Trend-Kandidaten ableiten.`}
               </div>
+              {ideaStream.length > 0 && (
+                <button className="btn ai" onClick={handleGenerateProposals} style={{ fontSize: 13, padding: '10px 20px' }}>
+                  <Icon name="sparkles" size={14}/> Proposals generieren
+                </button>
+              )}
+            </div>
+          )}
+
+          {generatingProposals && (
+            <div style={{ padding: '40px 16px', textAlign: 'center' }}>
+              <span className="ai-shimmer" style={{ fontSize: 13 }}>Analysiere Ideen…</span>
+            </div>
+          )}
+
+          {proposals.length > 0 && (
+            <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 10 }}>
+              <button className="btn ai sm" onClick={handleGenerateProposals} disabled={generatingProposals || ideaStream.length === 0}>
+                <Icon name="sparkles" size={11}/> {generatingProposals ? 'Generiere…' : 'Neu generieren'}
+              </button>
             </div>
           )}
 
           {proposals.map(p => (
-            <div key={p.id} className="card" style={{ padding: 14, marginBottom: 10 }}>
+            <div key={p.id} className="card" style={{ padding: 14, marginBottom: 10, borderLeft: '3px solid var(--ai)' }}>
               <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 8 }}>
-                {p.cluster && <span style={{ width: 10, height: 10, borderRadius: 999, background: p.cluster.color }}/>}
-                <span className="mono" style={{ fontSize: 10.5, color: "var(--fg-3)" }}>{p.sourceIdeas} source ideas</span>
+                <span className="mono" style={{ fontSize: 10.5, color: "var(--fg-3)" }}>{p.sourceIdeas || 0} source ideas</span>
+                {p.stream && <span className="chip" style={{ fontSize: 9 }}>{p.stream}</span>}
                 <div style={{ flex: 1 }}/>
-                <span className="mono" style={{ fontSize: 11, color: p.confidence > 0.85 ? "#34D399" : "#F59E0B" }}>{(p.confidence * 100).toFixed(0)}% conf.</span>
+                <span className="mono" style={{ fontSize: 11, color: p.confidence > 0.85 ? "#34D399" : "#F59E0B" }}>{(p.confidence * 100).toFixed(0)}%</span>
               </div>
               <div style={{ fontSize: 14, fontWeight: 600, color: "var(--fg-0)", marginBottom: 4 }}>{p.title}</div>
-              {p.cluster && (
-                <div style={{ fontSize: 11.5, color: "var(--fg-2)", marginBottom: 10 }}>Cluster theme: <i>{p.cluster.label}</i></div>
-              )}
+              {p.summary && <div style={{ fontSize: 12, color: "var(--fg-2)", lineHeight: 1.5, marginBottom: 10 }}>{p.summary}</div>}
               <div style={{ display: "flex", gap: 6 }}>
-                <button className="btn primary sm" onClick={() => onOpenCluster && onOpenCluster(p.id)}><Icon name="check" size={12}/> Accept</button>
+                <button className="btn primary sm" onClick={() => { /* TODO: create trend from proposal */ }}><Icon name="check" size={12}/> Als Trend übernehmen</button>
                 <div style={{ flex: 1 }}/>
                 <button className="btn ghost sm" onClick={() => handleDismissProposal(p.id)}><Icon name="x" size={12}/> Dismiss</button>
               </div>

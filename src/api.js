@@ -80,6 +80,10 @@ export const clusterToTrendApi = {
   generate: (body) => request('/api/cluster-to-trend', { method: 'POST', body: JSON.stringify(body) }),
 };
 
+export const generateProposalsApi = {
+  generate: (body) => request('/api/generate-proposals', { method: 'POST', body: JSON.stringify(body) }),
+};
+
 export const generateIdeasApi = {
   generate: (body) => request('/api/generate-ideas', { method: 'POST', body: JSON.stringify(body) }),
 };
