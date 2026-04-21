@@ -1,5 +1,5 @@
 // Campaigns list + workspace + capture dialog + cluster review
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Icon, BarMeter, DimensionDot, StageBadge } from './ui.jsx';
 import { campaignsApi } from './api.js';
 
@@ -18,7 +18,7 @@ const NewCampaignDialog = ({ open, onClose, onCreated }) => {
         ...form,
         tags: form.tags ? form.tags.split(',').map(t => t.trim()).filter(Boolean) : [],
       });
-      onCreated(campaign);
+      onCreated(campaign.campaign || campaign);
       onClose();
       setForm({ title: '', description: '', question: '', owner: '', tags: '' });
     } catch (e) {
@@ -53,8 +53,15 @@ const NewCampaignDialog = ({ open, onClose, onCreated }) => {
 export const CampaignList = ({ data, onOpen, onNewCampaign }) => {
   const [filter, setFilter] = useState("all");
   const [newCampaignOpen, setNewCampaignOpen] = useState(false);
+  const [apiCampaigns, setApiCampaigns] = useState([]);
   const statusColor = { Active: "ok", Open: "accent", Closed: "" };
-  const campaigns = data.campaigns.filter(c => filter === "all" ? true : c.status.toLowerCase() === filter);
+
+  useEffect(() => {
+    campaignsApi.list().then(r => setApiCampaigns(Array.isArray(r) ? r : [])).catch(() => {});
+  }, []);
+
+  const allCampaigns = [...data.campaigns, ...apiCampaigns.filter(ac => !data.campaigns.some(mc => mc.id === ac.id))];
+  const campaigns = allCampaigns.filter(c => filter === "all" ? true : (c.status || 'active').toLowerCase() === filter);
 
   return (
     <div style={{ padding: 20, overflow: "auto", height: "100%" }} className="scroll">
@@ -109,7 +116,7 @@ export const CampaignList = ({ data, onOpen, onNewCampaign }) => {
       >
         + Neue Kampagne
       </button>
-      <NewCampaignDialog open={newCampaignOpen} onClose={() => setNewCampaignOpen(false)} onCreated={(c) => {}} />
+      <NewCampaignDialog open={newCampaignOpen} onClose={() => setNewCampaignOpen(false)} onCreated={(c) => { setApiCampaigns(prev => [c, ...prev]); }} />
     </div>
   );
 };
