@@ -301,7 +301,7 @@ export const CampaignWorkspace = ({ campaigns, ideas: mockIdeas, clusters, parti
               {c.description && <p style={{ margin: "4px 0 0", color: "var(--fg-3)", fontSize: 12.5, lineHeight: 1.5 }}>{c.description}</p>}
             </div>
             <div style={{ display: "flex", gap: 6 }}>
-              <button className="btn ai sm" onClick={onOpenCapture}><Icon name="sparkles" size={12}/> Capture idea</button>
+              <button className="btn ai sm" onClick={onOpenCapture}><Icon name="plus" size={12}/> Neuer Trend</button>
               <button className="btn sm" onClick={handleDelete} style={{ color: 'var(--hot)' }} title="Kampagne löschen"><Icon name="x" size={12}/> Löschen</button>
             </div>
           </div>

@@ -119,12 +119,12 @@ const App = () => {
   };
 
   let content;
-  if (route === "dashboard")              content = <Dashboard data={data} campaignsData={campaignsData} onGo={goTo} onOpenTrend={openTrend} onOpenCapture={() => setCaptureOpen(true)} onOpenTweaks={() => setTweaksOpen(true)} onOpenAI={() => setAiOpen(true)}/>;
+  if (route === "dashboard")              content = <Dashboard data={data} campaignsData={campaignsData} onGo={goTo} onOpenTrend={openTrend} onOpenCapture={() => setNewTrendOpen(true)} onOpenTweaks={() => setTweaksOpen(true)} onOpenAI={() => setAiOpen(true)}/>;
   else if (route === "explore")           content = <Explorer t={t} data={data} search={search} onOpenTrend={openTrend} campaigns={campaigns}/>;
   else if (route === "trendDetail")       content = <TrendDetail t={t} data={data} trendId={trendId} onBack={backFromTrend} onUpdate={updateTrend} onOpenTrend={openTrend}/>;
-  else if (route === "process")           content = <ProcessPipeline data={data} campaignsData={campaignsData} campaigns={campaigns} stage={processStage} setStage={setProcessStage} onOpenCampaign={openCampaign} onOpenCluster={id => setClusterReviewId(id)} onOpenCapture={() => setCaptureOpen(true)} onOpenInitiative={openInitiative} onLaunchInitiative={launchInitiativeFromTrend} onReviewAsTrend={prefill => { setTrendPrefill(prefill); setNewTrendOpen(true); }} onOpenClusterDetail={id => navigate(buildPath({ route: 'clusterDetail', clusterId: id }))}/>;
+  else if (route === "process")           content = <ProcessPipeline data={data} campaignsData={campaignsData} campaigns={campaigns} stage={processStage} setStage={setProcessStage} onOpenCampaign={openCampaign} onOpenCluster={id => setClusterReviewId(id)} onOpenCapture={() => setNewTrendOpen(true)} onOpenInitiative={openInitiative} onLaunchInitiative={launchInitiativeFromTrend} onReviewAsTrend={prefill => { setTrendPrefill(prefill); setNewTrendOpen(true); }} onOpenClusterDetail={id => navigate(buildPath({ route: 'clusterDetail', clusterId: id }))}/>;
   else if (route === "campaigns")         content = <CampaignList data={campaignsData} onOpen={openCampaign}/>;
-  else if (route === "campaignWorkspace") content = <CampaignWorkspace {...campaignsData} campaignId={campaignId} onBack={() => navigate(buildPath({ route: 'campaigns' }))} onOpenCapture={() => setCaptureOpen(true)} onOpenCluster={id => setClusterReviewId(id)}/>;
+  else if (route === "campaignWorkspace") content = <CampaignWorkspace {...campaignsData} campaignId={campaignId} onBack={() => navigate(buildPath({ route: 'campaigns' }))} onOpenCapture={() => setNewTrendOpen(true)} onOpenCluster={id => setClusterReviewId(id)}/>;
   else if (route === "initiativeDetail")  content = <ConceptWorkspace id={initiativeId} trends={data.trends} onBack={() => navigate(buildPath({ route: 'initiatives' }))}/>;
   else if (route === "clusterDetail")     content = <ClusterDetail clusterId={clusterId} campaignsData={campaignsData} onBack={() => navigate(buildPath({ route: 'process', processStage: 'cluster' }))} onReviewAsTrend={prefill => { setTrendPrefill(prefill); setNewTrendOpen(true); }}/>;
   else if (route === "analytics")         content = <AnalyticsHub t={t} data={data} onOpenTrend={openTrend}/>;
@@ -145,7 +145,7 @@ const App = () => {
         <main style={{ flex: 1, overflow: "hidden", background: "var(--bg-0)" }}>{content}</main>
       </div>
       <AIScout open={aiOpen} onClose={() => setAiOpen(false)} data={data} t={t}/>
-      <CaptureDialog open={captureOpen} onClose={() => setCaptureOpen(false)}/>
+      {/* CaptureDialog replaced by NewTrendDialog */}
       <NewTrendDialog
         open={newTrendOpen}
         onClose={() => { setNewTrendOpen(false); setTrendPrefill(null); }}
