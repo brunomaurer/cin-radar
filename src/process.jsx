@@ -511,7 +511,7 @@ const PipelineBoard = ({ data, campaignsData, stages, initiatives, onOpenInitiat
   );
 };
 
-export const ClusterDetail = ({ clusterId, onBack, onReviewAsTrend }) => {
+export const ClusterDetail = ({ clusterId, onBack, onReviewAsTrend, campaignsData }) => {
   const [cluster, setCluster] = useState(null);
   const [linkedSignals, setLinkedSignals] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -522,7 +522,8 @@ export const ClusterDetail = ({ clusterId, onBack, onReviewAsTrend }) => {
       clustersApi.get(clusterId).catch(() => null),
       signalsApi.list().catch(() => []),
     ]).then(([cl, sigs]) => {
-      setCluster(cl);
+      const resolved = cl?.cluster || cl || (campaignsData?.clusters || []).find(c => c.id === clusterId) || null;
+      setCluster(resolved);
       const allSigs = Array.isArray(sigs) ? sigs : [];
       setLinkedSignals(allSigs.filter(s => (s.clusterIds || []).includes(clusterId) || s.clusterId === clusterId));
     }).finally(() => setLoading(false));

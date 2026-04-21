@@ -126,7 +126,7 @@ const App = () => {
   else if (route === "campaigns")         content = <CampaignList data={campaignsData} onOpen={openCampaign}/>;
   else if (route === "campaignWorkspace") content = <CampaignWorkspace {...campaignsData} campaignId={campaignId} onBack={() => navigate(buildPath({ route: 'campaigns' }))} onOpenCapture={() => setCaptureOpen(true)} onOpenCluster={id => setClusterReviewId(id)}/>;
   else if (route === "initiativeDetail")  content = <ConceptWorkspace id={initiativeId} trends={data.trends} onBack={() => navigate(buildPath({ route: 'initiatives' }))}/>;
-  else if (route === "clusterDetail")     content = <ClusterDetail clusterId={clusterId} onBack={() => navigate(buildPath({ route: 'process', processStage: 'cluster' }))} onReviewAsTrend={prefill => { setTrendPrefill(prefill); setNewTrendOpen(true); }}/>;
+  else if (route === "clusterDetail")     content = <ClusterDetail clusterId={clusterId} campaignsData={campaignsData} onBack={() => navigate(buildPath({ route: 'process', processStage: 'cluster' }))} onReviewAsTrend={prefill => { setTrendPrefill(prefill); setNewTrendOpen(true); }}/>;
   else if (route === "analytics")         content = <AnalyticsHub t={t} data={data} onOpenTrend={openTrend}/>;
   else if (route === "initiatives")       content = <ConceptList onOpen={(id) => navigate(buildPath({ route: 'initiativeDetail', initiativeId: id }))} onGoToRate={() => navigate(buildPath({ route: 'process', processStage: 'rate' }))}/>;
   else if (route === "library")           content = <Library/>;
