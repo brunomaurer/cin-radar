@@ -559,27 +559,31 @@ const IdeaCard = ({ idea, onDelete, onEdit, clusters, onOpenCluster }) => {
             className="input"
             value={editText}
             onChange={e => setEditText(e.target.value)}
-            onBlur={handleSave}
-            onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleSave(); } }}
             rows={3}
-            style={{ width: '100%', resize: 'none', height: 'auto', fontFamily: 'inherit', fontSize: 13, padding: '8px 10px' }}
+            style={{ width: '100%', resize: 'vertical', height: 'auto', fontFamily: 'inherit', fontSize: 13, padding: '8px 10px' }}
             autoFocus
           />
+          <div style={{ display: "flex", gap: 6, marginTop: 8 }}>
+            <button className="btn primary sm" style={{ fontSize: 11 }} onClick={handleSave}><Icon name="check" size={10}/> Speichern</button>
+            <button className="btn sm" style={{ fontSize: 11 }} onClick={() => setEditing(false)}>Abbrechen</button>
+            <div style={{ flex: 1 }}/>
+            <button className="btn ghost sm" style={{ fontSize: 11, color: 'var(--hot)' }} onClick={() => onDelete(idea.id)}><Icon name="x" size={10}/> Löschen</button>
+          </div>
         </div>
       ) : (
-        <div style={{ fontSize: 13, color: "var(--fg-0)", lineHeight: 1.5, marginBottom: 10 }}>{idea.text}</div>
+        <>
+          <div style={{ fontSize: 13, color: "var(--fg-0)", lineHeight: 1.5, marginBottom: 10 }}>{idea.text}</div>
+          <div style={{ display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap" }}>
+            {cluster && (
+              <button onClick={() => onOpenCluster(cluster.id)} className="chip" style={{ background: cluster.color + "1a", borderColor: cluster.color + "55", color: cluster.color }}>
+                <Icon name="sparkles" size={10}/> {cluster.label}
+              </button>
+            )}
+            <div style={{ flex: 1 }}/>
+            <button className="btn ghost sm" style={{ height: 24, fontSize: 11 }} onClick={() => { setEditText(idea.text); setEditing(true); }}><Icon name="edit" size={10}/> Edit</button>
+          </div>
+        </>
       )}
-
-      <div style={{ display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap" }}>
-        {cluster && (
-          <button onClick={() => onOpenCluster(cluster.id)} className="chip" style={{ background: cluster.color + "1a", borderColor: cluster.color + "55", color: cluster.color }}>
-            <Icon name="sparkles" size={10}/> {cluster.label}
-          </button>
-        )}
-        <div style={{ flex: 1 }}/>
-        <button className="btn ghost sm" style={{ height: 24, fontSize: 11 }} onClick={() => { setEditText(idea.text); setEditing(true); }}><Icon name="edit" size={10}/> Edit</button>
-        <button className="btn ghost sm" style={{ height: 24, fontSize: 11, color: 'var(--hot)' }} onClick={() => onDelete(idea.id)}><Icon name="x" size={10}/> Löschen</button>
-      </div>
     </div>
   );
 };
