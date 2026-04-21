@@ -1,7 +1,7 @@
 // Campaigns list + workspace + capture dialog + cluster review
 import { useState, useEffect } from 'react';
 import { Icon, BarMeter, DimensionDot, StageBadge } from './ui.jsx';
-import { campaignsApi } from './api.js';
+import { campaignsApi, generateIdeasApi } from './api.js';
 
 const NewCampaignDialog = ({ open, onClose, onCreated }) => {
   const [form, setForm] = useState({ title: '', description: '', question: '', owner: '', tags: '' });
@@ -121,165 +121,358 @@ export const CampaignList = ({ data, onOpen, onNewCampaign }) => {
   );
 };
 
-export const CampaignWorkspace = ({ campaigns, ideas, clusters, participants, campaignId, onBack, onOpenCapture, onOpenCluster }) => {
+export const CampaignWorkspace = ({ campaigns, ideas: mockIdeas, clusters, participants, campaignId, onBack, onOpenCapture, onOpenCluster }) => {
   const [apiCampaign, setApiCampaign] = useState(null);
+  const [ideaStream, setIdeaStream] = useState([]);
+  const [generating, setGenerating] = useState(false);
+  const [newIdeaText, setNewIdeaText] = useState('');
+  const [editingTitle, setEditingTitle] = useState(false);
+  const [title, setTitle] = useState('');
+  const [proposals, setProposals] = useState([]);
+  const [selectedCluster, setSelectedCluster] = useState(null);
+
+  const isMock = !!campaigns.find(x => x.id === campaignId);
+
   useEffect(() => {
     const found = campaigns.find(x => x.id === campaignId);
-    if (!found) {
-      campaignsApi.get(campaignId).then(r => setApiCampaign(r.campaign || r)).catch(() => {});
+    if (found) {
+      setTitle(found.title);
+      // For mock campaigns, seed the idea stream from mock data
+      setIdeaStream(mockIdeas.map(i => ({
+        id: i.id,
+        text: i.text,
+        source: i.role === 'agent' ? 'ai' : 'manual',
+        type: i.type || 'signal',
+        author: i.author,
+        timestamp: i.ago,
+        cluster: i.cluster,
+      })));
+      // Build proposals from clusters that have proposed=true
+      setProposals(clusters.filter(cl => cl.proposed).map(cl => ({
+        id: cl.id,
+        title: cl.trendName,
+        confidence: cl.confidence,
+        sourceIdeas: mockIdeas.filter(i => i.cluster === cl.id).length,
+        cluster: cl,
+      })));
+    } else {
+      campaignsApi.get(campaignId).then(r => {
+        const camp = r.campaign || r;
+        setApiCampaign(camp);
+        setTitle(camp.title);
+        // Load saved ideas from campaign object
+        if (camp.ideas && camp.ideas.length > 0) {
+          setIdeaStream(camp.ideas);
+        }
+      }).catch(() => {});
     }
   }, [campaignId]);
-  const c = campaigns.find(x => x.id === campaignId) || apiCampaign || campaigns[0];
-  const [selectedCluster, setSelectedCluster] = useState(null);
-  const [filter, setFilter] = useState("all");
 
-  const filteredIdeas = filter === "all" ? ideas : ideas.filter(i => i.cluster === filter);
+  const c = campaigns.find(x => x.id === campaignId) || apiCampaign || campaigns[0];
+  if (!c) return null;
+
+  const handleGenerateIdeas = async () => {
+    setGenerating(true);
+    try {
+      const result = await generateIdeasApi.generate({
+        title: c.title,
+        question: c.question || '',
+        description: c.description || '',
+      });
+      const newIdeas = (result.ideas || []).map((idea, idx) => ({
+        id: `gen-${Date.now()}-${idx}`,
+        text: idea.text,
+        source: 'ai',
+        type: idea.type || 'signal',
+        tags: idea.tags || [],
+        timestamp: 'just now',
+      }));
+      const updated = [...ideaStream, ...newIdeas];
+      setIdeaStream(updated);
+      // Persist to campaign if API-based
+      if (!isMock) {
+        campaignsApi.update(campaignId, { ideas: updated }).catch(() => {});
+      }
+    } catch (e) {
+      alert('Error generating ideas: ' + e.message);
+    } finally {
+      setGenerating(false);
+    }
+  };
+
+  const handleAddIdea = () => {
+    if (!newIdeaText.trim()) return;
+    const newIdea = {
+      id: `manual-${Date.now()}`,
+      text: newIdeaText.trim(),
+      source: 'manual',
+      type: 'observation',
+      timestamp: 'just now',
+    };
+    const updated = [...ideaStream, newIdea];
+    setIdeaStream(updated);
+    setNewIdeaText('');
+    if (!isMock) {
+      campaignsApi.update(campaignId, { ideas: updated }).catch(() => {});
+    }
+  };
+
+  const handleDeleteIdea = (ideaId) => {
+    const updated = ideaStream.filter(i => i.id !== ideaId);
+    setIdeaStream(updated);
+    if (!isMock) {
+      campaignsApi.update(campaignId, { ideas: updated }).catch(() => {});
+    }
+  };
+
+  const handleEditIdea = (ideaId, newText) => {
+    const updated = ideaStream.map(i => i.id === ideaId ? { ...i, text: newText } : i);
+    setIdeaStream(updated);
+    if (!isMock) {
+      campaignsApi.update(campaignId, { ideas: updated }).catch(() => {});
+    }
+  };
+
+  const handleTitleSave = () => {
+    setEditingTitle(false);
+    if (!isMock && title !== c.title) {
+      campaignsApi.update(campaignId, { title }).catch(() => {});
+    }
+  };
+
+  const handleDismissProposal = (proposalId) => {
+    setProposals(prev => prev.filter(p => p.id !== proposalId));
+  };
+
+  const signalCount = isMock ? (c.signals || 0) : ideaStream.length;
+  const clusterCount = isMock ? (c.clusters || clusters.length) : 0;
+  const proposalCount = proposals.length;
 
   return (
-    <div style={{ display: "grid", gridTemplateColumns: "1fr 420px", height: "100%", overflow: "hidden" }}>
+    <div style={{ display: "grid", gridTemplateColumns: "1fr 380px", height: "100%", overflow: "hidden" }}>
+      {/* Left column ~65% */}
       <div style={{ display: "flex", flexDirection: "column", minWidth: 0, borderRight: "1px solid var(--line-1)" }}>
+        {/* Top bar */}
         <div style={{ padding: "14px 20px", borderBottom: "1px solid var(--line-1)" }}>
-          <button onClick={onBack} style={{ color: "var(--fg-3)", fontSize: 11.5, display: "inline-flex", alignItems: "center", gap: 4, marginBottom: 8 }}><Icon name="arrowLeft" size={12}/> All campaigns</button>
+          <button onClick={onBack} style={{ color: "var(--fg-3)", fontSize: 11.5, display: "inline-flex", alignItems: "center", gap: 4, marginBottom: 8, background: 'none', border: 'none', cursor: 'pointer' }}><Icon name="arrowLeft" size={12}/> All campaigns</button>
           <div style={{ display: "flex", alignItems: "flex-start", gap: 16 }}>
             <div style={{ flex: 1 }}>
               <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 6 }}>
-                <span className="chip ok"><span className="dot ok"/>{c.status}</span>
-                <span className="chip mono">Create · open collection</span>
-                <span className="chip mono"><Icon name="clock" size={10}/>{c.closes}</span>
+                <span className="chip ok"><span className="dot ok"/>{c.status || 'active'}</span>
               </div>
-              <h1 style={{ margin: 0, fontSize: 19, fontWeight: 600, color: "var(--fg-0)" }}>{c.title}</h1>
-              <p style={{ margin: "6px 0 0", color: "var(--fg-2)", fontSize: 13 }}>{c.question}</p>
+              {editingTitle ? (
+                <input
+                  className="input"
+                  value={title}
+                  onChange={e => setTitle(e.target.value)}
+                  onBlur={handleTitleSave}
+                  onKeyDown={e => e.key === 'Enter' && handleTitleSave()}
+                  autoFocus
+                  style={{ fontSize: 19, fontWeight: 600, color: "var(--fg-0)", width: '100%', padding: '2px 6px' }}
+                />
+              ) : (
+                <h1 onClick={() => setEditingTitle(true)} style={{ margin: 0, fontSize: 19, fontWeight: 600, color: "var(--fg-0)", cursor: 'pointer' }} title="Click to edit">{title || c.title}</h1>
+              )}
+              {c.question && <p style={{ margin: "6px 0 0", color: "var(--fg-2)", fontSize: 13 }}>{c.question}</p>}
             </div>
             <div style={{ display: "flex", gap: 6 }}>
-              <button className="btn sm"><Icon name="link" size={12}/> Share link</button>
               <button className="btn ai sm" onClick={onOpenCapture}><Icon name="sparkles" size={12}/> Capture idea</button>
             </div>
           </div>
 
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(5, 1fr)", gap: 10, marginTop: 14 }}>
+          {/* Stats row */}
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 10, marginTop: 14 }}>
             {[
-              ["Signals", c.signals],
-              ["Clusters", c.clusters],
-              ["AI-proposed trends", c.proposed, true],
-              ["Participants", `${c.participants}`, false, `${c.external} external`],
-              ["Momentum", "↑", false, "+42 last 24 h"],
-            ].map(([label, val, ai, sub], i) => (
+              ["Signals", signalCount],
+              ["Clusters", clusterCount],
+              ["AI Proposals", proposalCount, true],
+            ].map(([label, val, ai], i) => (
               <div key={i} style={{ padding: "8px 10px", background: "var(--bg-1)", borderRadius: 6, border: "1px solid var(--line-1)" }}>
                 <div style={{ fontSize: 10, color: "var(--fg-3)", textTransform: "uppercase", letterSpacing: 0.8 }}>{label}</div>
                 <div style={{ display: "flex", alignItems: "baseline", gap: 6, marginTop: 2 }}>
                   <span className={ai ? "ai-shimmer" : "mono"} style={{ fontSize: 18, fontWeight: 600, color: ai ? undefined : "var(--fg-0)" }}>{val}</span>
-                  {sub && <span className="mono" style={{ fontSize: 10.5, color: "var(--fg-3)" }}>{sub}</span>}
                 </div>
               </div>
             ))}
           </div>
         </div>
 
-        <div style={{ padding: 20, borderBottom: "1px solid var(--line-1)", background: "var(--bg-1)" }}>
-          <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 10 }}>
-            <span style={{ fontSize: 13, fontWeight: 600, color: "var(--fg-0)" }}>Live cluster map</span>
-            <span className="chip ai mono" style={{ fontSize: 10 }}><Icon name="sparkles" size={10}/>updating every 30 s</span>
-            <div style={{ flex: 1 }}/>
-            <span className="mono" style={{ fontSize: 11, color: "var(--fg-3)" }}>{clusters.length} clusters · {ideas.length} ideas</span>
-          </div>
-          <ClusterMap clusters={clusters} selected={selectedCluster} onSelect={setSelectedCluster} onOpenCluster={onOpenCluster}/>
-        </div>
-
+        {/* Idea Stream */}
         <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "12px 20px", borderBottom: "1px solid var(--line-1)" }}>
-          <span style={{ fontSize: 12.5, fontWeight: 600, color: "var(--fg-0)" }}>Idea stream</span>
-          <div style={{ display: "flex", background: "var(--bg-2)", border: "1px solid var(--line-2)", borderRadius: 6, padding: 2 }}>
-            <button onClick={() => setFilter("all")} style={{ padding: "4px 10px", fontSize: 11, borderRadius: 4, background: filter === "all" ? "var(--bg-3)" : "transparent", color: filter === "all" ? "var(--fg-0)" : "var(--fg-3)" }}>All</button>
-            {clusters.map(cl => (
-              <button key={cl.id} onClick={() => setFilter(cl.id)} style={{ padding: "4px 10px", fontSize: 11, borderRadius: 4, background: filter === cl.id ? "var(--bg-3)" : "transparent", color: filter === cl.id ? "var(--fg-0)" : "var(--fg-3)", display: "inline-flex", alignItems: "center", gap: 5 }}>
-                <span style={{ width: 7, height: 7, borderRadius: 999, background: cl.color }}/>{cl.label}
-              </button>
-            ))}
-          </div>
+          <span style={{ fontSize: 12.5, fontWeight: 600, color: "var(--fg-0)" }}>Idea Stream</span>
+          <span className="mono" style={{ fontSize: 11, color: "var(--fg-3)" }}>{ideaStream.length} ideas</span>
           <div style={{ flex: 1 }}/>
-          <button className="btn ghost sm"><Icon name="sort" size={12}/> newest</button>
+          {ideaStream.length > 0 && (
+            <button className="btn ai sm" onClick={handleGenerateIdeas} disabled={generating}>
+              <Icon name="sparkles" size={12}/> {generating ? 'Generating...' : 'Generate more'}
+            </button>
+          )}
         </div>
 
         <div className="scroll" style={{ flex: 1, overflow: "auto", padding: "0 20px 20px" }}>
-          {filteredIdeas.map(i => {
-            const cluster = clusters.find(x => x.id === i.cluster);
-            return (
-              <div key={i.id} className="card" style={{ padding: 14, marginTop: 12, borderLeft: `3px solid ${cluster?.color || 'var(--line-2)'}` }}>
-                <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 8 }}>
-                  <div style={{ width: 22, height: 22, borderRadius: 999, background: i.role === "agent" ? "linear-gradient(135deg,#A78BFA,#3B82F6)" : "var(--bg-3)", display: "grid", placeItems: "center", fontSize: 10, color: "white", fontWeight: 600 }}>
-                    {i.role === "agent" ? <Icon name="sparkles" size={11}/> : i.author.split(" ").map(x => x[0]).join("").slice(0,2)}
-                  </div>
-                  <span style={{ fontSize: 12, color: "var(--fg-1)", fontWeight: 500 }}>{i.author}</span>
-                  <span className="mono" style={{ fontSize: 10.5, color: "var(--fg-3)" }}>· {i.role}</span>
-                  <span className="chip mono" style={{ fontSize: 10 }}>{i.lang}</span>
-                  <span className="chip">{i.type}</span>
-                  <div style={{ flex: 1 }}/>
-                  <span className="mono" style={{ fontSize: 10.5, color: "var(--fg-3)" }}>{i.ago}</span>
-                </div>
-                <div style={{ fontSize: 13, color: "var(--fg-0)", lineHeight: 1.5, marginBottom: 10 }}>{i.text}</div>
-                <div style={{ display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap" }}>
-                  {cluster && <button onClick={() => onOpenCluster(cluster.id)} className="chip" style={{ background: cluster.color + "1a", borderColor: cluster.color + "55", color: cluster.color }}>
-                    <Icon name="sparkles" size={10}/> {cluster.label}
-                  </button>}
-                  {i.url && <a style={{ color: "var(--accent-2)", fontSize: 11 }} className="mono">{i.url}</a>}
-                  <div style={{ flex: 1 }}/>
-                  <button className="btn ghost sm" style={{ height: 24 }}>👍 <span className="mono">{i.reactions.relevant}</span></button>
-                  <button className="btn ghost sm" style={{ height: 24 }}>✨ <span className="mono">{i.reactions.surprising}</span></button>
-                  <button className="btn ghost sm" style={{ height: 24 }}>⚠ <span className="mono">{i.reactions.disagree}</span></button>
-                </div>
-              </div>
-            );
-          })}
+          {ideaStream.length === 0 && !generating && (
+            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '60px 20px', textAlign: 'center' }}>
+              <div style={{ fontSize: 13, color: 'var(--fg-2)', marginBottom: 16 }}>No ideas yet. Generate AI idea seeds to get started.</div>
+              <button className="btn ai" onClick={handleGenerateIdeas} disabled={generating} style={{ padding: '10px 20px', fontSize: 13 }}>
+                <Icon name="sparkles" size={14}/> Generate Ideas
+              </button>
+            </div>
+          )}
+
+          {generating && ideaStream.length === 0 && (
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '60px 20px' }}>
+              <span className="ai-shimmer" style={{ fontSize: 13 }}>Generating idea seeds...</span>
+            </div>
+          )}
+
+          {ideaStream.map(i => (
+            <IdeaCard key={i.id} idea={i} onDelete={handleDeleteIdea} onEdit={handleEditIdea} clusters={clusters} onOpenCluster={onOpenCluster} />
+          ))}
+
+          {/* Manual idea input */}
+          {ideaStream.length > 0 && (
+            <div style={{ marginTop: 12, display: 'flex', gap: 8, alignItems: 'flex-end' }}>
+              <textarea
+                className="input"
+                placeholder="Add an idea manually..."
+                value={newIdeaText}
+                onChange={e => setNewIdeaText(e.target.value)}
+                onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleAddIdea(); } }}
+                rows={2}
+                style={{ flex: 1, resize: 'none', height: 'auto', fontFamily: 'inherit', fontSize: 13, padding: '10px 12px' }}
+              />
+              <button className="btn sm" onClick={handleAddIdea} disabled={!newIdeaText.trim()} style={{ height: 38 }}>Add</button>
+            </div>
+          )}
         </div>
+
+        {/* Live Cluster Map — only show for mock campaigns that have clusters */}
+        {isMock && clusters.length > 0 && (
+          <div style={{ padding: 20, borderTop: "1px solid var(--line-1)", background: "var(--bg-1)" }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 10 }}>
+              <span style={{ fontSize: 13, fontWeight: 600, color: "var(--fg-0)" }}>Live Cluster Map</span>
+              <span className="chip ai mono" style={{ fontSize: 10 }}><Icon name="sparkles" size={10}/>updating</span>
+              <div style={{ flex: 1 }}/>
+              <span className="mono" style={{ fontSize: 11, color: "var(--fg-3)" }}>{clusters.length} clusters</span>
+            </div>
+            <ClusterMap clusters={clusters} selected={selectedCluster} onSelect={setSelectedCluster} onOpenCluster={onOpenCluster}/>
+          </div>
+        )}
       </div>
 
+      {/* Right column ~35% */}
       <div style={{ display: "flex", flexDirection: "column", overflow: "hidden", background: "var(--bg-1)" }}>
         <div style={{ padding: "14px 18px", borderBottom: "1px solid var(--line-1)" }}>
           <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
             <div className="ai-shimmer" style={{ fontSize: 12, fontWeight: 600, textTransform: "uppercase", letterSpacing: 1 }}>AI Proposals</div>
-            <span className="chip ai mono" style={{ fontSize: 10 }}>{clusters.filter(c => c.proposed).length} awaiting</span>
+            {proposals.length > 0 && <span className="chip ai mono" style={{ fontSize: 10 }}>{proposals.length} awaiting</span>}
           </div>
-          <div style={{ fontSize: 11.5, color: "var(--fg-3)", marginTop: 6 }}>Clusters that have stabilised enough to become tracked trends.</div>
+          <div style={{ fontSize: 11.5, color: "var(--fg-3)", marginTop: 6 }}>Trend candidates suggested by AI based on ideas and signals.</div>
         </div>
         <div className="scroll" style={{ flex: 1, overflow: "auto", padding: 14 }}>
-          {clusters.filter(c => c.proposed).map(cl => (
-            <div key={cl.id} className="card" style={{ padding: 14, marginBottom: 10 }}>
+          {proposals.length === 0 && (
+            <div style={{ padding: '40px 16px', textAlign: 'center' }}>
+              <div style={{ fontSize: 12, color: 'var(--fg-3)', lineHeight: 1.6 }}>
+                Add more ideas to get AI proposals. As patterns emerge in your idea stream, the AI will suggest trend candidates here.
+              </div>
+            </div>
+          )}
+
+          {proposals.map(p => (
+            <div key={p.id} className="card" style={{ padding: 14, marginBottom: 10 }}>
               <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 8 }}>
-                <span style={{ width: 10, height: 10, borderRadius: 999, background: cl.color }}/>
-                <span className="mono" style={{ fontSize: 10.5, color: "var(--fg-3)" }}>cluster · {ideas.filter(i => i.cluster === cl.id).length} ideas</span>
+                {p.cluster && <span style={{ width: 10, height: 10, borderRadius: 999, background: p.cluster.color }}/>}
+                <span className="mono" style={{ fontSize: 10.5, color: "var(--fg-3)" }}>{p.sourceIdeas} source ideas</span>
                 <div style={{ flex: 1 }}/>
-                <span className="mono" style={{ fontSize: 11, color: cl.confidence > 0.85 ? "#34D399" : "#F59E0B" }}>{(cl.confidence * 100).toFixed(0)}% conf.</span>
+                <span className="mono" style={{ fontSize: 11, color: p.confidence > 0.85 ? "#34D399" : "#F59E0B" }}>{(p.confidence * 100).toFixed(0)}% conf.</span>
               </div>
-              <div style={{ fontSize: 14, fontWeight: 600, color: "var(--fg-0)", marginBottom: 4 }}>{cl.trendName}</div>
-              <div style={{ fontSize: 11.5, color: "var(--fg-2)", marginBottom: 10 }}>Cluster theme: <i>{cl.label}</i></div>
-
-              <div style={{ padding: 10, background: "var(--bg-2)", borderRadius: 6, border: "1px solid var(--line-1)", marginBottom: 10 }}>
-                <div style={{ fontSize: 10, color: "var(--ai)", textTransform: "uppercase", letterSpacing: 0.8, marginBottom: 6 }}>AI-drafted trend card</div>
-                <div style={{ display: "grid", gridTemplateColumns: "70px 1fr", gap: "4px 8px", fontSize: 11.5 }}>
-                  <span style={{ color: "var(--fg-3)" }}>Dimension</span><span><DimensionDot dim="Technology"/> Technology</span>
-                  <span style={{ color: "var(--fg-3)" }}>Horizon</span><span className="mono">H2 · 2–5 yrs</span>
-                  <span style={{ color: "var(--fg-3)" }}>Stage</span><StageBadge stage="Emerging"/>
-                </div>
-              </div>
-
+              <div style={{ fontSize: 14, fontWeight: 600, color: "var(--fg-0)", marginBottom: 4 }}>{p.title}</div>
+              {p.cluster && (
+                <div style={{ fontSize: 11.5, color: "var(--fg-2)", marginBottom: 10 }}>Cluster theme: <i>{p.cluster.label}</i></div>
+              )}
               <div style={{ display: "flex", gap: 6 }}>
-                <button className="btn ai sm" onClick={() => onOpenCluster(cl.id)}><Icon name="eye" size={12}/> Review</button>
-                <button className="btn primary sm"><Icon name="check" size={12}/> Accept</button>
+                <button className="btn primary sm" onClick={() => onOpenCluster && onOpenCluster(p.id)}><Icon name="check" size={12}/> Accept</button>
                 <div style={{ flex: 1 }}/>
-                <button className="btn ghost sm"><Icon name="x" size={12}/></button>
+                <button className="btn ghost sm" onClick={() => handleDismissProposal(p.id)}><Icon name="x" size={12}/> Dismiss</button>
               </div>
             </div>
           ))}
 
-          <div style={{ fontSize: 11, color: "var(--fg-3)", textTransform: "uppercase", letterSpacing: 0.8, margin: "18px 0 10px" }}>Participants ({participants.filter(p => p.contrib !== null).length + 41})</div>
-          <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
-            {participants.map((p, i) => (
-              <div key={i} title={`${p.name}${p.contrib ? ' · ' + p.contrib + ' contributions' : ''}`}
-                style={{ width: 30, height: 30, borderRadius: 999, background: p.color, color: "white", display: "grid", placeItems: "center", fontSize: 10.5, fontWeight: 600, border: "1px solid rgba(255,255,255,0.08)" }}>
-                {p.initials || "+41"}
+          {/* Participants section for mock campaigns */}
+          {isMock && participants.length > 0 && (
+            <>
+              <div style={{ fontSize: 11, color: "var(--fg-3)", textTransform: "uppercase", letterSpacing: 0.8, margin: "18px 0 10px" }}>Participants ({participants.filter(p => p.contrib !== null).length + 41})</div>
+              <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
+                {participants.map((p, i) => (
+                  <div key={i} title={`${p.name}${p.contrib ? ' · ' + p.contrib + ' contributions' : ''}`}
+                    style={{ width: 30, height: 30, borderRadius: 999, background: p.color, color: "white", display: "grid", placeItems: "center", fontSize: 10.5, fontWeight: 600, border: "1px solid rgba(255,255,255,0.08)" }}>
+                    {p.initials || "+41"}
+                  </div>
+                ))}
               </div>
-            ))}
-          </div>
+            </>
+          )}
         </div>
+      </div>
+    </div>
+  );
+};
+
+const IdeaCard = ({ idea, onDelete, onEdit, clusters, onOpenCluster }) => {
+  const [editing, setEditing] = useState(false);
+  const [editText, setEditText] = useState(idea.text);
+
+  const cluster = clusters ? clusters.find(x => x.id === idea.cluster) : null;
+  const isAI = idea.source === 'ai';
+
+  const handleSave = () => {
+    if (editText.trim() && editText !== idea.text) {
+      onEdit(idea.id, editText.trim());
+    }
+    setEditing(false);
+  };
+
+  return (
+    <div className="card" style={{ padding: 14, marginTop: 12, borderLeft: `3px solid ${cluster?.color || (isAI ? 'var(--ai)' : 'var(--line-2)')}` }}>
+      <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 8 }}>
+        <div style={{ width: 22, height: 22, borderRadius: 999, background: isAI ? "linear-gradient(135deg,#A78BFA,#3B82F6)" : "var(--bg-3)", display: "grid", placeItems: "center", fontSize: 10, color: "white", fontWeight: 600 }}>
+          {isAI ? <Icon name="sparkles" size={11}/> : (idea.author ? idea.author.split(" ").map(x => x[0]).join("").slice(0,2) : 'U')}
+        </div>
+        <span style={{ fontSize: 12, color: "var(--fg-1)", fontWeight: 500 }}>{isAI ? 'AI' : (idea.author || 'You')}</span>
+        <span className="chip" style={{ fontSize: 10 }}>{idea.type || 'idea'}</span>
+        {idea.tags && idea.tags.length > 0 && idea.tags.map(t => (
+          <span key={t} className="chip mono" style={{ fontSize: 10 }}><Icon name="hash" size={9}/>{t}</span>
+        ))}
+        <div style={{ flex: 1 }}/>
+        <span className="mono" style={{ fontSize: 10.5, color: "var(--fg-3)" }}>{idea.timestamp || ''}</span>
+      </div>
+
+      {editing ? (
+        <div style={{ marginBottom: 8 }}>
+          <textarea
+            className="input"
+            value={editText}
+            onChange={e => setEditText(e.target.value)}
+            onBlur={handleSave}
+            onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleSave(); } }}
+            rows={3}
+            style={{ width: '100%', resize: 'none', height: 'auto', fontFamily: 'inherit', fontSize: 13, padding: '8px 10px' }}
+            autoFocus
+          />
+        </div>
+      ) : (
+        <div style={{ fontSize: 13, color: "var(--fg-0)", lineHeight: 1.5, marginBottom: 10 }}>{idea.text}</div>
+      )}
+
+      <div style={{ display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap" }}>
+        {cluster && (
+          <button onClick={() => onOpenCluster(cluster.id)} className="chip" style={{ background: cluster.color + "1a", borderColor: cluster.color + "55", color: cluster.color }}>
+            <Icon name="sparkles" size={10}/> {cluster.label}
+          </button>
+        )}
+        <div style={{ flex: 1 }}/>
+        <button className="btn ghost sm" style={{ height: 24, fontSize: 11 }} onClick={() => { setEditText(idea.text); setEditing(true); }}>Edit</button>
+        <button className="btn ghost sm" style={{ height: 24, fontSize: 11, color: 'var(--fg-3)' }} onClick={() => onDelete(idea.id)}>Delete</button>
       </div>
     </div>
   );

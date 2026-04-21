@@ -80,6 +80,10 @@ export const clusterToTrendApi = {
   generate: (body) => request('/api/cluster-to-trend', { method: 'POST', body: JSON.stringify(body) }),
 };
 
+export const generateIdeasApi = {
+  generate: (body) => request('/api/generate-ideas', { method: 'POST', body: JSON.stringify(body) }),
+};
+
 export const ARTEFACT_META = {
   claude: { label: 'CLAUDE.md',       sub: 'Instructions für AI-Coding-Agent',  icon: 'bolt',     lang: 'markdown', ext: '.md' },
   prd:    { label: 'PRD',             sub: 'Product Requirements + Gherkin',    icon: 'book',     lang: 'markdown', ext: '.md' },
