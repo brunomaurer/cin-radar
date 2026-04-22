@@ -674,7 +674,6 @@ const IdeaCard = ({ idea, onDelete, onEdit, clusters, onOpenCluster, availableTa
             )}
             <div style={{ flex: 1 }}/>
             <button className="btn ghost sm" style={{ height: 24, fontSize: 11 }} onClick={() => { setEditText(idea.text); setEditing(true); }}><Icon name="edit" size={10}/> Edit</button>
-            <button className="btn ghost sm" style={{ height: 24, fontSize: 11, color: 'var(--hot)' }} onClick={() => onDelete(idea.id)}><Icon name="x" size={10}/></button>
           </div>
         </>
       )}
