@@ -40,6 +40,8 @@ export default async function handler(req, res) {
           ai: 0,
           tags: parseTags(body.tags),
           summary: (body.summary || '').trim(),
+          imageUrl: body.imageUrl || null,
+          subscribed: body.subscribed || false,
           createdAt: now,
           updatedAt: now,
           custom: true,
