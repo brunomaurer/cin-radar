@@ -96,7 +96,13 @@ const App = () => {
     });
     if (saveTimers[id]) clearTimeout(saveTimers[id]);
     saveTimers[id] = setTimeout(() => {
-      trendsApi.update(id, patch).catch(err => console.error('Trend-Update fehlgeschlagen', err));
+      trendsApi.update(id, patch).catch(() => {
+        // Mock trend not in Redis — create it with full data
+        const mock = CIN_DATA.trends.find(t => t.id === id);
+        if (mock) {
+          trendsApi.create({ ...mock, ...patch, custom: true }).catch(err => console.error('Trend-Create fehlgeschlagen', err));
+        }
+      });
     }, 400);
   };
 
