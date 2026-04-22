@@ -93,21 +93,32 @@ export const Explorer = ({ t, data, search, onOpenTrend, campaigns }) => {
         .then(r => {
           const apiSignals = Array.isArray(r) ? r : [];
           // Merge with mock signals from data
-          const mockSignals = (data.signals || []).map(s => ({ ...s, channel: 'manual', createdAt: s.date, summary: '' }));
+          const mockSignals = (data.signals || []).map(s => ({ ...s, channel: s.channel || 'mock', dateLabel: s.date, summary: '' }));
           const all = [...apiSignals, ...mockSignals.filter(ms => !apiSignals.some(as => as.id === ms.id))];
           setSignals(all);
         })
         .catch(() => {
           // Fallback to mock signals
-          setSignals((data.signals || []).map(s => ({ ...s, channel: 'manual', createdAt: s.date, summary: '' })));
+          setSignals((data.signals || []).map(s => ({ ...s, channel: s.channel || 'mock', dateLabel: s.date, summary: '' })));
         })
         .finally(() => setSignalsLoading(false));
+    }
+  }, [view]);
+
+  // Update URL with view param
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    if (view !== 'table') { params.set('view', view); } else { params.delete('view'); }
+    const newUrl = params.toString() ? `${window.location.pathname}?${params}` : window.location.pathname;
+    if (newUrl !== window.location.pathname + window.location.search) {
+      window.history.replaceState({}, '', newUrl);
     }
   }, [view]);
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     if (params.get('channel')) setChannelFilter(params.get('channel'));
+    if (params.get('view')) setView(params.get('view'));
   }, []);
 
   const rows = useMemo(() => {
@@ -384,14 +395,15 @@ export const Explorer = ({ t, data, search, onOpenTrend, campaigns }) => {
           {!signalsLoading && signals.length > 0 && (
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))', gap: 12, alignContent: 'start' }}>
               {signals.map(s => {
-                const date = s.createdAt ? new Date(s.createdAt).toLocaleDateString('de-CH', { day: '2-digit', month: '2-digit', year: '2-digit' }) : '';
+                const rawDate = s.createdAt ? new Date(s.createdAt) : null;
+                const date = s.dateLabel || (rawDate && !isNaN(rawDate) ? rawDate.toLocaleDateString('de-CH', { day: '2-digit', month: '2-digit', year: '2-digit' }) : '');
                 const isAssigned = !!(s.trendId || s.clusterId);
                 return (
                   <div key={s.id} className="card" style={{ padding: 14, display: 'flex', flexDirection: 'column', gap: 8 }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                      <span style={{ display: 'inline-block', width: 8, height: 8, borderRadius: '50%', background: { manual: '#3B82F6', url: '#10B981', pdf: '#F59E0B', 'ai-scout': '#A78BFA' }[s.channel] || 'var(--fg-3)', flexShrink: 0 }} />
+                      <span style={{ display: 'inline-block', width: 8, height: 8, borderRadius: '50%', background: { manual: '#3B82F6', mock: '#3B82F6', url: '#10B981', pdf: '#F59E0B', 'ai-scout': '#A78BFA' }[s.channel] || 'var(--fg-3)', flexShrink: 0 }} />
                       <span style={{ color: 'var(--fg-0)', fontWeight: 500, fontSize: 13.5, flex: 1 }}>{s.title}</span>
-                      <span className="mono" style={{ color: 'var(--fg-3)', fontSize: 10.5 }}>{s.channel}</span>
+                      <span className="mono" style={{ color: 'var(--fg-3)', fontSize: 10.5 }}>{{ manual: 'Manuell', mock: 'Demo', url: 'URL', pdf: 'PDF', 'ai-scout': 'AI Scout' }[s.channel] || s.channel}</span>
                     </div>
                     {s.source && (
                       <div style={{ display: 'flex', alignItems: 'center', gap: 6, color: 'var(--fg-3)', fontSize: 11.5 }}>
