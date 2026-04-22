@@ -39,7 +39,9 @@ const App = () => {
 
   const data = (() => {
     const byId = new Map(CIN_DATA.trends.map(t => [t.id, t]));
-    for (const t of customTrends) byId.set(t.id, t);
+    for (const t of customTrends) {
+      if (t._hidden) { byId.delete(t.id); } else { byId.set(t.id, t); }
+    }
     const trends = Array.from(byId.values());
     const owners = Array.from(new Set(trends.map(t => t.owner).filter(Boolean)));
     return { ...CIN_DATA, trends, owners };

@@ -65,17 +65,17 @@ export const Explorer = ({ t, data, search, onOpenTrend, campaigns }) => {
 
   const handleBulkDelete = async () => {
     if (selected.size === 0) return;
-    const customCount = [...selected].filter(id => data.trends.find(t => t.id === id)?.custom).length;
-    const mockCount = selected.size - customCount;
-    const msg = mockCount > 0
-      ? `${customCount} eigene Trend(s) löschen? (${mockCount} Demo-Trends können nicht gelöscht werden)`
-      : `${selected.size} Trend(s) wirklich löschen?`;
-    if (!confirm(msg)) return;
+    if (!confirm(`${selected.size} Trend(s) wirklich löschen?`)) return;
     setActionOpen(false);
     setActionLoading(true);
     try {
       for (const id of selected) {
-        await trendsApi.remove(id).catch(() => {}); // OK if mock trend not in Redis
+        // For mock trends: create a "hidden" override in Redis
+        try {
+          await trendsApi.remove(id);
+        } catch {
+          await trendsApi.create({ id, _hidden: true, title: '', custom: true }).catch(() => {});
+        }
       }
       setSelected(new Set());
       window.location.reload();
