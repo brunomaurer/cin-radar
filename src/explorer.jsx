@@ -38,15 +38,24 @@ export const Explorer = ({ t, data, search, onOpenTrend, campaigns }) => {
     if (selected.size === 0) return;
     setActionLoading(true);
     setActionOpen(false);
+    let count = 0;
     try {
       for (const id of selected) {
         const trend = data.trends.find(t => t.id === id);
         if (!trend || trend.imageUrl) continue;
         const r = await fetch('/api/generate-image', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ title: trend.title, dim: trend.dim, summary: trend.summary || '' }) });
         const img = await r.json();
-        if (img.url) await trendsApi.update(id, { imageUrl: img.url });
+        if (img.url) {
+          // Try update, if 404 (mock trend), create it first
+          try {
+            await trendsApi.update(id, { imageUrl: img.url });
+          } catch {
+            await trendsApi.create({ ...trend, imageUrl: img.url, custom: true });
+          }
+          count++;
+        }
       }
-      alert('Bilder generiert! Seite neu laden um sie zu sehen.');
+      alert(`${count} Bild(er) generiert! Seite neu laden um sie zu sehen.`);
     } catch (e) {
       alert('Fehler: ' + e.message);
     } finally {
