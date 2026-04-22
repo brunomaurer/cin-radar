@@ -1,7 +1,7 @@
 // Explorer — table/list with filters, sort, search
 import { useState, useMemo, useEffect } from 'react';
 import { Icon, BarMeter, Sparkline, StageBadge, DimensionDot } from './ui.jsx';
-import { signalsApi } from './api.js';
+import { signalsApi, trendsApi } from './api.js';
 
 const processStages = [
   { k: 'all', l: 'All', c: 'var(--fg-2)' },
@@ -31,13 +31,62 @@ export const Explorer = ({ t, data, search, onOpenTrend, campaigns }) => {
   const [channelFilter, setChannelFilter] = useState('');
   const [signals, setSignals] = useState([]);
   const [signalsLoading, setSignalsLoading] = useState(false);
+  const [actionOpen, setActionOpen] = useState(false);
+  const [actionLoading, setActionLoading] = useState(false);
+
+  const handleBulkGenerateImages = async () => {
+    if (selected.size === 0) return;
+    setActionLoading(true);
+    setActionOpen(false);
+    try {
+      for (const id of selected) {
+        const trend = data.trends.find(t => t.id === id);
+        if (!trend || trend.imageUrl) continue;
+        const r = await fetch('/api/generate-image', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ title: trend.title, dim: trend.dim, summary: trend.summary || '' }) });
+        const img = await r.json();
+        if (img.url) await trendsApi.update(id, { imageUrl: img.url });
+      }
+      alert('Bilder generiert! Seite neu laden um sie zu sehen.');
+    } catch (e) {
+      alert('Fehler: ' + e.message);
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+  const handleBulkDelete = async () => {
+    if (selected.size === 0) return;
+    if (!confirm(`${selected.size} Trend(s) wirklich löschen?`)) return;
+    setActionOpen(false);
+    setActionLoading(true);
+    try {
+      for (const id of selected) {
+        await trendsApi.remove(id).catch(() => {});
+      }
+      setSelected(new Set());
+      alert('Gelöscht! Seite neu laden.');
+    } catch (e) {
+      alert('Fehler: ' + e.message);
+    } finally {
+      setActionLoading(false);
+    }
+  };
 
   useEffect(() => {
     if (view === 'signals') {
       setSignalsLoading(true);
       signalsApi.list()
-        .then(r => setSignals(Array.isArray(r) ? r : []))
-        .catch(() => setSignals([]))
+        .then(r => {
+          const apiSignals = Array.isArray(r) ? r : [];
+          // Merge with mock signals from data
+          const mockSignals = (data.signals || []).map(s => ({ ...s, channel: 'manual', createdAt: s.date, summary: '' }));
+          const all = [...apiSignals, ...mockSignals.filter(ms => !apiSignals.some(as => as.id === ms.id))];
+          setSignals(all);
+        })
+        .catch(() => {
+          // Fallback to mock signals
+          setSignals((data.signals || []).map(s => ({ ...s, channel: 'manual', createdAt: s.date, summary: '' })));
+        })
         .finally(() => setSignalsLoading(false));
     }
   }, [view]);
@@ -144,6 +193,25 @@ export const Explorer = ({ t, data, search, onOpenTrend, campaigns }) => {
           {rows.length} {t("of")} {data.trends.length} {t("rows")}
         </div>
         <button className="btn sm"><Icon name="download" size={13}/> CSV</button>
+        {selected.size > 0 && (
+          <div style={{ position: 'relative' }}>
+            <button className="btn primary sm" onClick={() => setActionOpen(!actionOpen)} disabled={actionLoading}>
+              {actionLoading ? '…' : <><Icon name="bolt" size={12}/> Aktion ({selected.size})</>}
+            </button>
+            {actionOpen && (
+              <div className="card" style={{ position: 'absolute', top: '100%', right: 0, marginTop: 4, padding: 4, zIndex: 50, minWidth: 180, boxShadow: '0 8px 24px rgba(0,0,0,0.4)' }}>
+                <button onClick={handleBulkGenerateImages} style={{ display: 'flex', alignItems: 'center', gap: 8, width: '100%', padding: '8px 12px', fontSize: 12, color: 'var(--fg-0)', borderRadius: 4, textAlign: 'left' }}
+                  onMouseEnter={e => e.currentTarget.style.background = 'var(--bg-2)'} onMouseLeave={e => e.currentTarget.style.background = 'transparent'}>
+                  <Icon name="sparkles" size={12}/> Bild generieren
+                </button>
+                <button onClick={handleBulkDelete} style={{ display: 'flex', alignItems: 'center', gap: 8, width: '100%', padding: '8px 12px', fontSize: 12, color: 'var(--hot)', borderRadius: 4, textAlign: 'left' }}
+                  onMouseEnter={e => e.currentTarget.style.background = 'var(--bg-2)'} onMouseLeave={e => e.currentTarget.style.background = 'transparent'}>
+                  <Icon name="x" size={12}/> Löschen
+                </button>
+              </div>
+            )}
+          </div>
+        )}
       </div>
 
       <div style={{ display: "flex", alignItems: "center", gap: 10, padding: "10px 16px", background: "linear-gradient(90deg, rgba(167,139,250,0.08), rgba(59,130,246,0.03) 60%, transparent)", borderBottom: "1px solid var(--line-1)" }}>

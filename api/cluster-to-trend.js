@@ -37,6 +37,11 @@ Nur JSON, kein anderer Text.`;
   try {
     const text = msg.content[0].text.trim();
     const json = JSON.parse(text.replace(/```json?\n?/g, '').replace(/```/g, ''));
+
+    // Auto-generate image
+    const imgPrompt = [json.title, json.dim ? `in the field of ${json.dim}` : '', json.summary ? json.summary.slice(0, 150) : '', 'professional editorial photo, clean, modern, soft lighting, no text'].filter(Boolean).join(', ');
+    json.imageUrl = `https://image.pollinations.ai/prompt/${encodeURIComponent(imgPrompt)}?width=600&height=800&nologo=true`;
+
     return res.json(json);
   } catch {
     return res.status(500).json({ error: 'Failed to parse AI response', raw: msg.content[0].text });
