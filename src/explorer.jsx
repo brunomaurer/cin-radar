@@ -69,14 +69,12 @@ export const Explorer = ({ t, data, search, onOpenTrend, campaigns }) => {
     setActionOpen(false);
     setActionLoading(true);
     try {
+      const hidden = JSON.parse(localStorage.getItem('cin-hidden-trends') || '[]');
       for (const id of selected) {
-        // For mock trends: create a "hidden" override in Redis
-        try {
-          await trendsApi.remove(id);
-        } catch {
-          await trendsApi.create({ id, _hidden: true, title: '', custom: true }).catch(() => {});
-        }
+        await trendsApi.remove(id).catch(() => {});
+        if (!hidden.includes(id)) hidden.push(id);
       }
+      localStorage.setItem('cin-hidden-trends', JSON.stringify(hidden));
       setSelected(new Set());
       window.location.reload();
     } catch (e) {

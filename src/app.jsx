@@ -39,10 +39,9 @@ const App = () => {
 
   const data = (() => {
     const byId = new Map(CIN_DATA.trends.map(t => [t.id, t]));
-    for (const t of customTrends) {
-      if (t._hidden) { byId.delete(t.id); } else { byId.set(t.id, t); }
-    }
-    const trends = Array.from(byId.values());
+    for (const t of customTrends) byId.set(t.id, t);
+    const hidden = new Set(JSON.parse(localStorage.getItem('cin-hidden-trends') || '[]'));
+    const trends = Array.from(byId.values()).filter(t => !hidden.has(t.id));
     const owners = Array.from(new Set(trends.map(t => t.owner).filter(Boolean)));
     return { ...CIN_DATA, trends, owners };
   })();
