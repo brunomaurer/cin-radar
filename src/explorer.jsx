@@ -412,7 +412,7 @@ export const Explorer = ({ t, data, search, onOpenTrend, campaigns }) => {
 
 const SignalCard = ({ signal: s, onOpenTrend, onUpdate, onDelete }) => {
   const [editing, setEditing] = useState(false);
-  const [form, setForm] = useState({ title: s.title, source: s.source || '', tags: (s.tags || []).join(', ') });
+  const [form, setForm] = useState({ title: s.title, source: s.source || '', url: s.url || '', summary: s.summary || '' });
   const isMock = s.channel === 'mock';
   const rawDate = s.createdAt ? new Date(s.createdAt) : null;
   const date = s.dateLabel || (rawDate && !isNaN(rawDate) ? rawDate.toLocaleDateString('de-CH', { day: '2-digit', month: '2-digit', year: '2-digit' }) : '');
@@ -421,7 +421,7 @@ const SignalCard = ({ signal: s, onOpenTrend, onUpdate, onDelete }) => {
   const isAssigned = !!(s.trendId || s.clusterId);
 
   const handleSave = () => {
-    onUpdate(s.id, { title: form.title, source: form.source, tags: form.tags.split(',').map(t => t.trim()).filter(Boolean) });
+    onUpdate(s.id, { title: form.title, source: form.source, url: form.url, summary: form.summary });
     setEditing(false);
   };
 
@@ -429,9 +429,10 @@ const SignalCard = ({ signal: s, onOpenTrend, onUpdate, onDelete }) => {
     <div className="card" style={{ padding: 14, display: 'flex', flexDirection: 'column', gap: 8 }}>
       {editing ? (
         <>
-          <input className="input" value={form.title} onChange={e => setForm(f => ({ ...f, title: e.target.value }))} placeholder="Titel" autoFocus style={{ fontSize: 13, fontWeight: 500 }} />
-          <input className="input" value={form.source} onChange={e => setForm(f => ({ ...f, source: e.target.value }))} placeholder="Quelle" style={{ fontSize: 12 }} />
-          <input className="input" value={form.tags} onChange={e => setForm(f => ({ ...f, tags: e.target.value }))} placeholder="Tags (kommagetrennt)" style={{ fontSize: 12 }} />
+          <input className="input" value={form.title} onChange={e => setForm(f => ({ ...f, title: e.target.value }))} placeholder="Name" autoFocus style={{ fontSize: 13, fontWeight: 500 }} />
+          <input className="input" value={form.source} onChange={e => setForm(f => ({ ...f, source: e.target.value }))} placeholder="Quelle (z.B. TechCrunch, Reuters)" style={{ fontSize: 12 }} />
+          <input className="input" value={form.url} onChange={e => setForm(f => ({ ...f, url: e.target.value }))} placeholder="URL" style={{ fontSize: 12 }} />
+          <textarea className="input" value={form.summary} onChange={e => setForm(f => ({ ...f, summary: e.target.value }))} placeholder="Beschreibung" rows={2} style={{ fontSize: 12, height: 'auto', fontFamily: 'inherit', resize: 'vertical', padding: '8px 10px' }} />
           <div style={{ display: 'flex', gap: 6 }}>
             <button className="btn primary sm" style={{ fontSize: 11 }} onClick={handleSave}><Icon name="check" size={10}/> Speichern</button>
             <button className="btn sm" style={{ fontSize: 11 }} onClick={() => setEditing(false)}>Abbrechen</button>
@@ -446,11 +447,14 @@ const SignalCard = ({ signal: s, onOpenTrend, onUpdate, onDelete }) => {
             <span style={{ color: 'var(--fg-0)', fontWeight: 500, fontSize: 13.5, flex: 1 }}>{s.title}</span>
             <span className="mono" style={{ color: 'var(--fg-3)', fontSize: 10.5 }}>{channelLabel}</span>
           </div>
-          {s.source && (
+          {(s.source || s.url) && (
             <div style={{ display: 'flex', alignItems: 'center', gap: 6, color: 'var(--fg-3)', fontSize: 11.5 }}>
               <Icon name="link" size={11} />
-              <span className="mono" style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: 320 }}>{s.source}</span>
+              <span className="mono" style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: 320 }}>{s.source}{s.url && s.source ? ' · ' : ''}{s.url && <a href={s.url} target="_blank" rel="noopener" style={{ color: 'var(--accent)' }}>Link</a>}</span>
             </div>
+          )}
+          {s.summary && (
+            <div style={{ fontSize: 12, color: 'var(--fg-2)', lineHeight: 1.4 }}>{s.summary}</div>
           )}
           <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
             {(s.tags || []).map(tag => <span key={tag} className="chip" style={{ fontSize: 10.5 }}>{tag}</span>)}
@@ -469,7 +473,7 @@ const SignalCard = ({ signal: s, onOpenTrend, onUpdate, onDelete }) => {
               </span>
             )}
             <div style={{ flex: 1 }}/>
-            <button className="btn ghost sm" style={{ height: 22, fontSize: 10 }} onClick={() => { setForm({ title: s.title, source: s.source || '', tags: (s.tags || []).join(', ') }); setEditing(true); }}><Icon name="edit" size={10}/> Edit</button>
+            <button className="btn ghost sm" style={{ height: 22, fontSize: 10 }} onClick={() => { setForm({ title: s.title, source: s.source || '', url: s.url || '', summary: s.summary || '' }); setEditing(true); }}><Icon name="edit" size={10}/> Edit</button>
           </div>
         </>
       )}
