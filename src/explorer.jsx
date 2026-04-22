@@ -428,6 +428,16 @@ export const Explorer = ({ t, data, search, onOpenTrend, campaigns }) => {
                           <Icon name="minus" size={11} /> unassigned
                         </span>
                       )}
+                      <div style={{ flex: 1 }}/>
+                      {s.channel !== 'mock' && (
+                        <button className="btn ghost sm" style={{ height: 22, fontSize: 10, color: 'var(--hot)' }} onClick={async () => {
+                          if (!confirm('Signal löschen?')) return;
+                          try {
+                            await signalsApi.remove(s.id);
+                            setSignals(prev => prev.filter(x => x.id !== s.id));
+                          } catch {}
+                        }}><Icon name="x" size={10}/></button>
+                      )}
                     </div>
                   </div>
                 );

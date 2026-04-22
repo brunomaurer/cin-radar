@@ -237,10 +237,11 @@ export const CampaignWorkspace = ({ campaigns, ideas: mockIdeas, clusters, parti
   };
 
   const handleDeleteIdea = (ideaId) => {
+    if (!confirm('Idee wirklich löschen?')) return;
     const updated = ideaStream.filter(i => i.id !== ideaId);
     setIdeaStream(updated);
     if (!isMock) {
-      campaignsApi.update(campaignId, { ideas: updated }).catch(() => {});
+      campaignsApi.update(campaignId, { ideas: updated }).catch(e => console.error('Delete failed:', e));
     }
   };
 
@@ -674,6 +675,7 @@ const IdeaCard = ({ idea, onDelete, onEdit, clusters, onOpenCluster, availableTa
             )}
             <div style={{ flex: 1 }}/>
             <button className="btn ghost sm" style={{ height: 24, fontSize: 11 }} onClick={() => { setEditText(idea.text); setEditing(true); }}><Icon name="edit" size={10}/> Edit</button>
+            <button className="btn ghost sm" style={{ height: 24, fontSize: 11, color: 'var(--hot)' }} onClick={() => onDelete(idea.id)}><Icon name="x" size={10}/></button>
           </div>
         </>
       )}
