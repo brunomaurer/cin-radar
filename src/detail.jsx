@@ -140,7 +140,7 @@ export const TrendDetail = ({ t, data, trendId, onBack, onUpdate, onOpenTrend })
               </div>
               {!m.raw && (
                 <div style={{ marginTop: 10 }}>
-                  {m.editable && onUpdate
+                  {m.editable && editing
                     ? <EditableBar value={m.val ?? 0} color={m.color} onChange={v => onUpdate(trend.id, { [m.key]: v })}/>
                     : <BarMeter value={m.val ?? 0} color={m.color} height={3}/>}
                 </div>
