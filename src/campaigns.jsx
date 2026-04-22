@@ -237,7 +237,6 @@ export const CampaignWorkspace = ({ campaigns, ideas: mockIdeas, clusters, parti
   };
 
   const handleDeleteIdea = (ideaId) => {
-    if (!confirm('Idee wirklich löschen?')) return;
     const updated = ideaStream.filter(i => i.id !== ideaId);
     setIdeaStream(updated);
     if (!isMock) {
