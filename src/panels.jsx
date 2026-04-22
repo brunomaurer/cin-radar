@@ -11,6 +11,8 @@ export const AIScout = ({ open, onClose, data, t }) => {
   const [dismissedIds, setDismissedIds] = useLocalStorage("cin-ai-dismissed", []);
   const [realSignals, setRealSignals] = useState([]);
   const [lastRun, setLastRun] = useState(null);
+  const [generatingDraft, setGeneratingDraft] = useState(false);
+  const [draft, setDraft] = useState(null);
 
   useEffect(() => {
     if (!open) return;
@@ -157,17 +159,74 @@ export const AIScout = ({ open, onClose, data, t }) => {
 
           {tab === "capture" && (
             <div style={{ padding: 14 }}>
-              <div style={{ fontSize: 12.5, color: "var(--fg-1)", marginBottom: 10 }}>Paste a URL, drop a PDF, or describe a signal in natural language.</div>
-              <textarea className="input" style={{ width: "100%", height: 120, padding: 10, resize: "vertical", fontFamily: "var(--font-sans)" }}
+              <div style={{ fontSize: 12.5, color: "var(--fg-1)", marginBottom: 10 }}>Beschreibe ein Signal, füge eine URL ein, oder gib einen Suchbegriff ein.</div>
+              <textarea className="input" style={{ width: "100%", height: 120, padding: 10, resize: "vertical", fontFamily: "var(--font-sans)", fontSize: 13 }}
                 value={prompt} onChange={e => setPrompt(e.target.value)}
-                placeholder="e.g. https://nature.com/…   or   'New EU directive on synthetic biology published today, affects textile industry …'"/>
+                placeholder="z.B. 'Neues EU-Gesetz zu synthetischer Biologie betrifft Textilindustrie' oder eine URL…"/>
               <div style={{ display: "flex", gap: 6, marginTop: 10 }}>
-                <button className="btn ai"><Icon name="sparkles" size={13}/> Generate {t("ai_draft")}</button>
-                <button className="btn ghost"><Icon name="ext" size={13}/> Upload PDF</button>
+                <button className="btn ai" disabled={!prompt.trim() || generatingDraft} onClick={async () => {
+                  setGeneratingDraft(true);
+                  setDraft(null);
+                  try {
+                    const r = await fetch('/api/generate-signal-draft', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ prompt: prompt.trim() }) });
+                    const data = await r.json();
+                    if (data.error) throw new Error(data.error);
+                    setDraft(data);
+                  } catch (e) {
+                    alert('Fehler: ' + e.message);
+                  } finally {
+                    setGeneratingDraft(false);
+                  }
+                }}>
+                  <Icon name="sparkles" size={13}/> {generatingDraft ? 'Generiere…' : 'Signal entwerfen'}
+                </button>
               </div>
 
+              {generatingDraft && (
+                <div style={{ marginTop: 18, textAlign: 'center', padding: 20 }}>
+                  <span className="ai-shimmer" style={{ fontSize: 13 }}>Analysiere…</span>
+                </div>
+              )}
+
+              {draft && !generatingDraft && (
               <div style={{ marginTop: 18 }}>
-                <div style={{ fontSize: 11, color: "var(--fg-3)", textTransform: "uppercase", letterSpacing: 0.8, marginBottom: 10 }}>{t("ai_draft")} — preview</div>
+                <div style={{ fontSize: 11, color: "var(--fg-3)", textTransform: "uppercase", letterSpacing: 0.8, marginBottom: 10 }}>Signal-Entwurf — Preview</div>
+                <div className="card" style={{ padding: 14 }}>
+                  <div style={{ display: "grid", gridTemplateColumns: "110px 1fr", rowGap: 8, columnGap: 10, fontSize: 12.5 }}>
+                    {[
+                      ["Titel", draft.title],
+                      ["Quelle", draft.source],
+                      ["Typ", draft.type],
+                      ["Zusammenfassung", draft.summary],
+                    ].map(([l, v]) => (
+                      <Fragment key={l}>
+                        <span style={{ color: "var(--fg-3)" }}>{l}</span>
+                        <span style={{ color: "var(--fg-0)" }}>{v || '—'}</span>
+                      </Fragment>
+                    ))}
+                    <span style={{ color: "var(--fg-3)" }}>Tags</span>
+                    <div style={{ display: "flex", gap: 4, flexWrap: "wrap" }}>
+                      {(draft.tags || []).map(t => <span key={t} className="chip" style={{ fontSize: 10 }}>{t}</span>)}
+                    </div>
+                  </div>
+                  <div style={{ display: "flex", gap: 6, marginTop: 12 }}>
+                    <button className="btn primary sm" onClick={async () => {
+                      try {
+                        await signalsApi.create({ title: draft.title, source: draft.source, summary: draft.summary, channel: 'manual', tags: draft.tags || [], strength: draft.strength || 0.7 });
+                        setDraft(null);
+                        setPrompt('');
+                        alert('Signal gespeichert!');
+                      } catch (e) { alert('Fehler: ' + e.message); }
+                    }}><Icon name="check" size={12}/> Übernehmen</button>
+                    <button className="btn ghost sm" onClick={() => setDraft(null)}>Verwerfen</button>
+                  </div>
+                </div>
+              </div>
+              )}
+
+              {!draft && !generatingDraft && (
+              <div style={{ marginTop: 18 }}>
+                <div style={{ fontSize: 11, color: "var(--fg-3)", textTransform: "uppercase", letterSpacing: 0.8, marginBottom: 10 }}>Beispiel</div>
                 <div className="card" style={{ padding: 14 }}>
                   <div style={{ display: "grid", gridTemplateColumns: "110px 1fr", rowGap: 8, columnGap: 10, fontSize: 12.5 }}>
                     {[
@@ -185,6 +244,7 @@ export const AIScout = ({ open, onClose, data, t }) => {
                   </div>
                 </div>
               </div>
+              )}
             </div>
           )}
 
