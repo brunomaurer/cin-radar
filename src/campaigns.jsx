@@ -369,12 +369,12 @@ export const CampaignWorkspace = ({ campaigns, ideas: mockIdeas, clusters, parti
                 <>
                   <button className="btn sm" onClick={cancelEdit}>Abbrechen</button>
                   <button className="btn primary sm" onClick={saveEdit}><Icon name="check" size={13}/> Speichern</button>
+                  <button className="btn sm" onClick={handleDelete} style={{ color: 'var(--hot)' }} title="Kampagne löschen"><Icon name="x" size={12}/> Löschen</button>
                 </>
               ) : (
                 <>
                   <button className="btn sm" onClick={startEdit}><Icon name="edit" size={13}/> Bearbeiten</button>
                   <button className="btn ai sm" onClick={onOpenCapture}><Icon name="plus" size={12}/> Neuer Trend</button>
-                  <button className="btn sm" onClick={handleDelete} style={{ color: 'var(--hot)' }} title="Kampagne löschen"><Icon name="x" size={12}/></button>
                 </>
               )}
             </div>
