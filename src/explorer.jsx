@@ -392,57 +392,86 @@ export const Explorer = ({ t, data, search, onOpenTrend, campaigns }) => {
           )}
           {!signalsLoading && signals.length > 0 && (
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))', gap: 12, alignContent: 'start' }}>
-              {signals.map(s => {
-                const rawDate = s.createdAt ? new Date(s.createdAt) : null;
-                const date = s.dateLabel || (rawDate && !isNaN(rawDate) ? rawDate.toLocaleDateString('de-CH', { day: '2-digit', month: '2-digit', year: '2-digit' }) : '');
-                const isAssigned = !!(s.trendId || s.clusterId);
-                return (
-                  <div key={s.id} className="card" style={{ padding: 14, display: 'flex', flexDirection: 'column', gap: 8 }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                      <span style={{ display: 'inline-block', width: 8, height: 8, borderRadius: '50%', background: { manual: '#3B82F6', mock: '#3B82F6', url: '#10B981', pdf: '#F59E0B', 'ai-scout': '#A78BFA' }[s.channel] || 'var(--fg-3)', flexShrink: 0 }} />
-                      <span style={{ color: 'var(--fg-0)', fontWeight: 500, fontSize: 13.5, flex: 1 }}>{s.title}</span>
-                      <span className="mono" style={{ color: 'var(--fg-3)', fontSize: 10.5 }}>{{ manual: 'Manuell', mock: 'Demo', url: 'URL', pdf: 'PDF', 'ai-scout': 'AI Scout' }[s.channel] || s.channel}</span>
-                    </div>
-                    {s.source && (
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 6, color: 'var(--fg-3)', fontSize: 11.5 }}>
-                        <Icon name="link" size={11} />
-                        <span className="mono" style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: 320 }}>{s.source}</span>
-                      </div>
-                    )}
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
-                      {(s.tags || []).map(tag => <span key={tag} className="chip" style={{ fontSize: 10.5 }}>{tag}</span>)}
-                      <div style={{ flex: 1 }} />
-                      {date && <span className="mono" style={{ color: 'var(--fg-3)', fontSize: 10.5 }}>{date}</span>}
-                    </div>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 2 }}>
-                      {isAssigned ? (
-                        <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5, fontSize: 11, color: 'var(--fg-2)', background: 'var(--bg-2)', borderRadius: 4, padding: '2px 8px', border: '1px solid var(--line-2)' }}>
-                          <Icon name="check" size={11} />
-                          {s.trendId && <button onClick={() => onOpenTrend(s.trendId)} style={{ background: 'none', border: 'none', padding: 0, cursor: 'pointer', color: 'var(--accent)', fontSize: 11, fontWeight: 500 }}>Trend #{s.trendId}</button>}
-                          {!s.trendId && s.clusterId && <span>Cluster #{s.clusterId}</span>}
-                        </span>
-                      ) : (
-                        <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5, fontSize: 11, color: 'var(--fg-3)', background: 'var(--bg-1)', borderRadius: 4, padding: '2px 8px', border: '1px solid var(--line-1)' }}>
-                          <Icon name="minus" size={11} /> unassigned
-                        </span>
-                      )}
-                      <div style={{ flex: 1 }}/>
-                      {s.channel !== 'mock' && (
-                        <button className="btn ghost sm" style={{ height: 22, fontSize: 10, color: 'var(--hot)' }} onClick={async () => {
-                          if (!confirm('Signal löschen?')) return;
-                          try {
-                            await signalsApi.remove(s.id);
-                            setSignals(prev => prev.filter(x => x.id !== s.id));
-                          } catch {}
-                        }}><Icon name="x" size={10}/></button>
-                      )}
-                    </div>
-                  </div>
-                );
-              })}
+              {signals.map(s => (
+                <SignalCard key={s.id} signal={s} onOpenTrend={onOpenTrend} onUpdate={(id, patch) => {
+                  signalsApi.update(id, patch).then(r => {
+                    const updated = r.signal || r;
+                    setSignals(prev => prev.map(x => x.id === id ? { ...x, ...updated } : x));
+                  }).catch(() => {});
+                }} onDelete={(id) => {
+                  signalsApi.remove(id).then(() => setSignals(prev => prev.filter(x => x.id !== id))).catch(() => {});
+                }} />
+              ))}
             </div>
           )}
         </div>
+      )}
+    </div>
+  );
+};
+
+const SignalCard = ({ signal: s, onOpenTrend, onUpdate, onDelete }) => {
+  const [editing, setEditing] = useState(false);
+  const [form, setForm] = useState({ title: s.title, source: s.source || '', tags: (s.tags || []).join(', ') });
+  const isMock = s.channel === 'mock';
+  const rawDate = s.createdAt ? new Date(s.createdAt) : null;
+  const date = s.dateLabel || (rawDate && !isNaN(rawDate) ? rawDate.toLocaleDateString('de-CH', { day: '2-digit', month: '2-digit', year: '2-digit' }) : '');
+  const channelLabel = { manual: 'Manuell', mock: 'Demo', url: 'URL', pdf: 'PDF', 'ai-scout': 'AI Scout' }[s.channel] || s.channel;
+  const dotColor = { manual: '#3B82F6', mock: '#3B82F6', url: '#10B981', pdf: '#F59E0B', 'ai-scout': '#A78BFA' }[s.channel] || 'var(--fg-3)';
+  const isAssigned = !!(s.trendId || s.clusterId);
+
+  const handleSave = () => {
+    onUpdate(s.id, { title: form.title, source: form.source, tags: form.tags.split(',').map(t => t.trim()).filter(Boolean) });
+    setEditing(false);
+  };
+
+  return (
+    <div className="card" style={{ padding: 14, display: 'flex', flexDirection: 'column', gap: 8 }}>
+      {editing ? (
+        <>
+          <input className="input" value={form.title} onChange={e => setForm(f => ({ ...f, title: e.target.value }))} placeholder="Titel" autoFocus style={{ fontSize: 13, fontWeight: 500 }} />
+          <input className="input" value={form.source} onChange={e => setForm(f => ({ ...f, source: e.target.value }))} placeholder="Quelle" style={{ fontSize: 12 }} />
+          <input className="input" value={form.tags} onChange={e => setForm(f => ({ ...f, tags: e.target.value }))} placeholder="Tags (kommagetrennt)" style={{ fontSize: 12 }} />
+          <div style={{ display: 'flex', gap: 6 }}>
+            <button className="btn primary sm" style={{ fontSize: 11 }} onClick={handleSave}><Icon name="check" size={10}/> Speichern</button>
+            <button className="btn sm" style={{ fontSize: 11 }} onClick={() => setEditing(false)}>Abbrechen</button>
+            <div style={{ flex: 1 }}/>
+            {!isMock && <button className="btn ghost sm" style={{ fontSize: 11, color: 'var(--hot)' }} onClick={() => onDelete(s.id)}><Icon name="x" size={10}/> Löschen</button>}
+          </div>
+        </>
+      ) : (
+        <>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            <span style={{ display: 'inline-block', width: 8, height: 8, borderRadius: '50%', background: dotColor, flexShrink: 0 }} />
+            <span style={{ color: 'var(--fg-0)', fontWeight: 500, fontSize: 13.5, flex: 1 }}>{s.title}</span>
+            <span className="mono" style={{ color: 'var(--fg-3)', fontSize: 10.5 }}>{channelLabel}</span>
+          </div>
+          {s.source && (
+            <div style={{ display: 'flex', alignItems: 'center', gap: 6, color: 'var(--fg-3)', fontSize: 11.5 }}>
+              <Icon name="link" size={11} />
+              <span className="mono" style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: 320 }}>{s.source}</span>
+            </div>
+          )}
+          <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
+            {(s.tags || []).map(tag => <span key={tag} className="chip" style={{ fontSize: 10.5 }}>{tag}</span>)}
+            <div style={{ flex: 1 }} />
+            {date && <span className="mono" style={{ color: 'var(--fg-3)', fontSize: 10.5 }}>{date}</span>}
+          </div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 2 }}>
+            {isAssigned ? (
+              <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5, fontSize: 11, color: 'var(--fg-2)', background: 'var(--bg-2)', borderRadius: 4, padding: '2px 8px', border: '1px solid var(--line-2)' }}>
+                <Icon name="check" size={11} />
+                {s.trendId && <button onClick={() => onOpenTrend(s.trendId)} style={{ background: 'none', border: 'none', padding: 0, cursor: 'pointer', color: 'var(--accent)', fontSize: 11, fontWeight: 500 }}>Trend #{s.trendId}</button>}
+              </span>
+            ) : (
+              <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5, fontSize: 11, color: 'var(--fg-3)', background: 'var(--bg-1)', borderRadius: 4, padding: '2px 8px', border: '1px solid var(--line-1)' }}>
+                <Icon name="minus" size={11} /> unassigned
+              </span>
+            )}
+            <div style={{ flex: 1 }}/>
+            <button className="btn ghost sm" style={{ height: 22, fontSize: 10 }} onClick={() => { setForm({ title: s.title, source: s.source || '', tags: (s.tags || []).join(', ') }); setEditing(true); }}><Icon name="edit" size={10}/> Edit</button>
+          </div>
+        </>
       )}
     </div>
   );
