@@ -24,7 +24,7 @@ export const Explorer = ({ t, data, search, onOpenTrend, campaigns }) => {
   const [stage, setStage] = useState("all");
   const [owner, setOwner] = useState("all");
   const [sort, setSort] = useState({ key: "impact", dir: "desc" });
-  const [view, setView] = useState("table");
+  const [view, setView] = useState(() => new URLSearchParams(window.location.search).get('view') || 'table');
   const [selected, setSelected] = useState(new Set());
   const [processFilter, setProcessFilter] = useState('all');
   const [campaignFilter, setCampaignFilter] = useState('');
