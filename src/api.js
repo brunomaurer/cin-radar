@@ -90,6 +90,24 @@ export const summaryApi = {
   generate: (trends) => request('/api/summary', { method: 'POST', body: JSON.stringify({ trends }) }),
 };
 
+export const voiceApi = {
+  script: (trends) => request('/api/voice-script', { method: 'POST', body: JSON.stringify({ trends }) }),
+  tts: async (script, voice = 'nova') => {
+    const res = await fetch('/api/voice-tts', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ script, voice }),
+    });
+    if (!res.ok) {
+      const text = await res.text();
+      let msg = 'HTTP ' + res.status;
+      try { msg = JSON.parse(text).error || msg; } catch {}
+      throw new Error(msg);
+    }
+    return res.blob();
+  },
+};
+
 export const generateIdeasApi = {
   generate: (body) => request('/api/generate-ideas', { method: 'POST', body: JSON.stringify(body) }),
 };

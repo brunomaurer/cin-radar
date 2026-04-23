@@ -1,7 +1,7 @@
 // Explorer — table/list with filters, sort, search
 import { useState, useMemo, useEffect } from 'react';
 import { Icon, BarMeter, Sparkline, StageBadge, DimensionDot } from './ui.jsx';
-import { signalsApi, trendsApi, summaryApi } from './api.js';
+import { signalsApi, trendsApi, summaryApi, voiceApi } from './api.js';
 
 const processStages = [
   { k: 'all', l: 'All', c: 'var(--fg-2)' },
@@ -187,6 +187,71 @@ function trendBlock(t) {
     </div>`;
 }
 
+// ========== Audio Briefing HTML ==========
+
+function buildAudioLoadingHtml(count) {
+  return `<!doctype html><html lang="de"><head><meta charset="utf-8"><title>Audio Briefing · CIN Radar</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap">
+<style>
+  body { font-family: 'Inter', sans-serif; background: #0B1426; color: #D8E1EF; padding: 40px; margin: 0; }
+  h1 { color: #fff; font-size: 22px; margin: 0 0 6px; }
+  .meta { font-size: 12px; color: #6B7A96; margin-bottom: 24px; }
+  .box { background: #17253F; border-radius: 10px; padding: 24px; border: 1px solid #243656; text-align: center; }
+  .shimmer { background: linear-gradient(90deg, #A78BFA, #3B82F6, #A78BFA); background-size: 200% 100%; -webkit-background-clip: text; background-clip: text; color: transparent; font-weight: 600; animation: shimmer 3s linear infinite; font-size: 14px; }
+  @keyframes shimmer { 0% { background-position: 0% 50%; } 100% { background-position: 200% 50%; } }
+  .hint { font-size: 11.5px; color: #6B7A96; margin-top: 14px; }
+</style></head><body>
+<h1>Audio Briefing wird erzeugt</h1>
+<div class="meta">${count} Steckbriefe</div>
+<div class="box">
+  <div class="shimmer">Claude schreibt das Script, OpenAI synthetisiert die Stimme…</div>
+  <div class="hint">~10-20 Sekunden. Fenster offenlassen.</div>
+</div>
+</body></html>`;
+}
+
+function buildAudioHtml(trends, script, audioDataUrl) {
+  const date = new Date().toLocaleDateString('de-CH', { year: 'numeric', month: 'long', day: 'numeric' });
+  const filename = `cin-radar-briefing-${new Date().toISOString().slice(0,10)}.mp3`;
+  const trendLinks = trends.map(t => `<li><b>${escapeHtml(t.title)}</b> <span style="color:#6B7A96;font-size:11px">· ${escapeHtml(t.dim)} · ${escapeHtml(t.stage)}</span></li>`).join('');
+  return `<!doctype html><html lang="de"><head><meta charset="utf-8"><title>Audio Briefing · CIN Radar</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap">
+<style>
+  * { box-sizing: border-box; }
+  body { font-family: 'Inter', -apple-system, sans-serif; background: #0B1426; color: #D8E1EF; margin: 0; padding: 32px 40px; max-width: 820px; margin: 0 auto; }
+  h1 { color: #fff; font-size: 26px; margin: 0 0 4px; font-weight: 700; letter-spacing: -0.3px; }
+  .meta { font-size: 12px; color: #6B7A96; margin-bottom: 24px; }
+  .player { background: #17253F; border-radius: 12px; padding: 20px; border: 1px solid #243656; margin-bottom: 20px; }
+  audio { width: 100%; }
+  .actions { display: flex; gap: 10px; margin-top: 14px; }
+  .btn { background: #3B82F6; color: #fff; border: 0; padding: 9px 16px; border-radius: 6px; font-size: 13px; font-weight: 500; cursor: pointer; text-decoration: none; display: inline-flex; align-items: center; gap: 6px; font-family: inherit; }
+  .btn:hover { background: #2563EB; }
+  .btn.ghost { background: #17253F; border: 1px solid #243656; color: #D8E1EF; }
+  .btn.ghost:hover { background: #1F3052; }
+  h2 { color: #fff; font-size: 14px; font-weight: 600; margin: 24px 0 10px; text-transform: uppercase; letter-spacing: 0.6px; color: #6B7A96; }
+  .trend-list { list-style: none; padding: 0; margin: 0; background: #17253F; border-radius: 8px; border: 1px solid #243656; }
+  .trend-list li { padding: 10px 14px; border-bottom: 1px solid #1B2A47; font-size: 13px; }
+  .trend-list li:last-child { border-bottom: none; }
+  .script { background: #070D1A; color: #9AA8C2; padding: 20px 24px; border-radius: 10px; border: 1px solid #17253F; font-size: 13.5px; line-height: 1.75; white-space: pre-wrap; }
+</style></head><body>
+<h1>Audio Briefing</h1>
+<div class="meta">CIN Radar · ${escapeHtml(date)} · ${trends.length} Steckbriefe</div>
+
+<div class="player">
+  <audio controls autoplay src="${audioDataUrl}"></audio>
+  <div class="actions">
+    <a class="btn" href="${audioDataUrl}" download="${filename}">⬇ MP3 herunterladen</a>
+  </div>
+</div>
+
+<h2>Enthaltene Trends</h2>
+<ul class="trend-list">${trendLinks}</ul>
+
+<h2>Gesprochener Text</h2>
+<div class="script">${escapeHtml(script)}</div>
+</body></html>`;
+}
+
 function buildSummaryHtml(trends, summary) {
   const date = new Date().toLocaleDateString('de-CH', { year: 'numeric', month: 'long', day: 'numeric' });
   const recs = summary?.recommendations || {};
@@ -332,6 +397,47 @@ export const Explorer = ({ t, data, search, onOpenTrend, campaigns }) => {
       w.document.write(`<body style="font-family:sans-serif;padding:40px;background:#fff;color:#222"><h1>Fehler</h1><p>${escapeHtml(e.message)}</p></body>`);
       w.document.close();
       alert('Summary konnte nicht erzeugt werden: ' + e.message);
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+  const handleAudioBriefing = async () => {
+    if (selected.size === 0) return;
+    const selectedTrends = [...selected].map(id => data.trends.find(t => t.id === id)).filter(Boolean);
+    if (selectedTrends.length === 0) return;
+
+    setActionLoading(true);
+    setActionOpen(false);
+
+    const w = window.open('', '_blank', 'width=720,height=900');
+    if (!w) {
+      alert('Popup blockiert. Bitte Popups für cin-radar.vercel.app erlauben.');
+      setActionLoading(false);
+      return;
+    }
+    w.document.write(buildAudioLoadingHtml(selectedTrends.length));
+    w.document.close();
+
+    try {
+      const scriptRes = await voiceApi.script(selectedTrends);
+      const script = scriptRes.script;
+      const audioBlob = await voiceApi.tts(script, 'nova');
+      const dataUrl = await new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onloadend = () => resolve(reader.result);
+        reader.onerror = reject;
+        reader.readAsDataURL(audioBlob);
+      });
+      const html = buildAudioHtml(selectedTrends, script, dataUrl);
+      w.document.open();
+      w.document.write(html);
+      w.document.close();
+    } catch (e) {
+      w.document.open();
+      w.document.write(`<body style="font-family:sans-serif;padding:40px;background:#0B1426;color:#D8E1EF"><h1 style="color:#FB7185">Fehler</h1><p>${escapeHtml(e.message)}</p><p style="color:#6B7A96;font-size:12px;margin-top:14px">Falls der OPENAI_API_KEY noch fehlt: in Vercel → Settings → Environment Variables setzen und redeployen.</p></body>`);
+      w.document.close();
+      alert('Audio-Briefing fehlgeschlagen: ' + e.message);
     } finally {
       setActionLoading(false);
     }
@@ -504,6 +610,10 @@ export const Explorer = ({ t, data, search, onOpenTrend, campaigns }) => {
                 <button onClick={handleManagementSummary} style={{ display: 'flex', alignItems: 'center', gap: 8, width: '100%', padding: '8px 12px', fontSize: 12, color: 'var(--fg-0)', borderRadius: 4, textAlign: 'left' }}
                   onMouseEnter={e => e.currentTarget.style.background = 'var(--bg-2)'} onMouseLeave={e => e.currentTarget.style.background = 'transparent'}>
                   <Icon name="download" size={12}/> Management Summary als PDF
+                </button>
+                <button onClick={handleAudioBriefing} style={{ display: 'flex', alignItems: 'center', gap: 8, width: '100%', padding: '8px 12px', fontSize: 12, color: 'var(--fg-0)', borderRadius: 4, textAlign: 'left' }}
+                  onMouseEnter={e => e.currentTarget.style.background = 'var(--bg-2)'} onMouseLeave={e => e.currentTarget.style.background = 'transparent'}>
+                  <Icon name="sparkles" size={12}/> Audio Briefing als MP3
                 </button>
                 <button onClick={handleBulkDelete} style={{ display: 'flex', alignItems: 'center', gap: 8, width: '100%', padding: '8px 12px', fontSize: 12, color: 'var(--hot)', borderRadius: 4, textAlign: 'left' }}
                   onMouseEnter={e => e.currentTarget.style.background = 'var(--bg-2)'} onMouseLeave={e => e.currentTarget.style.background = 'transparent'}>
