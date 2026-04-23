@@ -26,6 +26,8 @@ export const trendsApi = {
   create: (body) => request('/api/trends', { method: 'POST', body: JSON.stringify(body) }),
   update: (id, patch) => request('/api/trends?id=' + encodeURIComponent(id), { method: 'PUT', body: JSON.stringify(patch) }),
   remove: (id) => request('/api/trends?id=' + encodeURIComponent(id), { method: 'DELETE' }),
+  dedupePreview: () => request('/api/trends-dedupe'),
+  dedupe: (body) => request('/api/trends-dedupe', { method: 'POST', body: JSON.stringify(body || {}) }),
 };
 
 export const signalsApi = {

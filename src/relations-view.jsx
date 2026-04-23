@@ -2,6 +2,7 @@
 import { useState, useEffect, useMemo } from 'react';
 import { Icon, DimensionDot, BarMeter, StageBadge } from './ui.jsx';
 import { relationsApi, trendsApi } from './api.js';
+import { CIN_DATA } from './data.js';
 
 const DIM_COLOR = {
   Technology: '#60A5FA', Society: '#F472B6', Economy: '#FBBF24',
@@ -18,6 +19,7 @@ export const RelationsView = ({ data, onOpenTrend }) => {
   const [hover, setHover] = useState(null); // { a, b, score, reason, x, y }
   const [selected, setSelected] = useState(null); // selected trend for popup
   const [cleaningDupes, setCleaningDupes] = useState(false);
+  const [dimFilter, setDimFilter] = useState(null); // aktiver Dimensions-Filter oder null
 
   const trends = data.trends;
 
@@ -44,18 +46,15 @@ export const RelationsView = ({ data, onOpenTrend }) => {
   const dupeCount = duplicates.reduce((a, g) => a + g.remove.length, 0);
 
   const cleanDuplicates = async () => {
-    if (dupeCount === 0) return;
-    if (!confirm(`${dupeCount} doppelte Steckbriefe bereinigen? (behält jeweils den ältesten pro Titel)`)) return;
+    const titles = duplicates.map(g => `"${g.keep.title}" (${g.remove.length + 1}×)`).join(', ');
+    if (!confirm(`Duplikate serverseitig bereinigen?\n\nBetroffen: ${titles}\n\nCustom-Trends mit Titel eines Mock-Trends werden komplett entfernt (Mock ist kanonisch). Andere Duplikate: ältester Eintrag bleibt.`)) return;
     setCleaningDupes(true);
     try {
-      const hidden = JSON.parse(localStorage.getItem('cin-hidden-trends') || '[]');
-      for (const g of duplicates) {
-        for (const t of g.remove) {
-          await trendsApi.remove(t.id).catch(() => {});
-          if (!hidden.includes(t.id)) hidden.push(t.id);
-        }
-      }
-      localStorage.setItem('cin-hidden-trends', JSON.stringify(hidden));
+      const mockTitles = CIN_DATA.trends.map(t => t.title);
+      const r = await trendsApi.dedupe({ preferredTitles: mockTitles });
+      // cin-hidden-trends vom alten Workaround aufräumen — die Trends sind jetzt real weg
+      localStorage.removeItem('cin-hidden-trends');
+      alert(`${r.removed || 0} Duplikate serverseitig gelöscht. Seite wird neu geladen.`);
       window.location.reload();
     } catch (e) {
       alert('Cleanup fehlgeschlagen: ' + e.message);
@@ -117,10 +116,20 @@ export const RelationsView = ({ data, onOpenTrend }) => {
 
   useEffect(() => { loadGraph(false); }, [trends.length]);
 
-  const filteredEdges = useMemo(() => {
-    if (!graph) return [];
-    return graph.edges.filter(e => e.score >= minScore);
-  }, [graph, minScore]);
+  const filteredGraph = useMemo(() => {
+    if (!graph) return null;
+    if (!dimFilter) {
+      return { nodes: graph.nodes, edges: graph.edges.filter(e => e.score >= minScore) };
+    }
+    // Nur Trends der gefilterten Dimension zeigen, Edges entsprechend eingeschränkt
+    const allowedIds = new Set(graph.nodes.filter(n => n.dim === dimFilter).map(n => n.id));
+    const nodes = graph.nodes.filter(n => allowedIds.has(n.id));
+    const edges = graph.edges.filter(e => e.score >= minScore && allowedIds.has(e.a) && allowedIds.has(e.b));
+    return { nodes, edges };
+  }, [graph, minScore, dimFilter]);
+
+  const filteredEdges = filteredGraph?.edges || [];
+  const filteredNodes = filteredGraph?.nodes || [];
 
   return (
     <div style={{ padding: 20, height: '100%', display: 'flex', flexDirection: 'column', gap: 14, overflow: 'hidden' }}>
@@ -173,9 +182,9 @@ export const RelationsView = ({ data, onOpenTrend }) => {
       {graph && (
         <div style={{ flex: 1, minHeight: 0, display: 'flex', gap: 14 }}>
           <div className="card" style={{ flex: 1, minWidth: 0, padding: 12, overflow: 'hidden', position: 'relative' }}>
-            {variant === 'graph' && <ForceGraph nodes={graph.nodes} edges={filteredEdges} onSelect={setSelected} onHover={setHover}/>}
-            {variant === 'matrix' && <MatrixHeatmap nodes={graph.nodes} edges={filteredEdges} onSelect={setSelected} onHover={setHover}/>}
-            {variant === 'chord' && <ChordDiagram nodes={graph.nodes} edges={filteredEdges} onSelect={setSelected} onHover={setHover}/>}
+            {variant === 'graph' && <ForceGraph nodes={filteredNodes} edges={filteredEdges} onSelect={setSelected} onHover={setHover}/>}
+            {variant === 'matrix' && <MatrixHeatmap nodes={filteredNodes} edges={filteredEdges} onSelect={setSelected} onHover={setHover}/>}
+            {variant === 'chord' && <ChordDiagram nodes={filteredNodes} edges={filteredEdges} onSelect={setSelected} onHover={setHover}/>}
 
             {hover && (
               <div style={{
@@ -193,16 +202,41 @@ export const RelationsView = ({ data, onOpenTrend }) => {
           </div>
           <div style={{ width: 240, flexShrink: 0, overflow: 'auto' }} className="scroll">
             <div className="card" style={{ padding: 14 }}>
-              <div style={{ fontSize: 11, color: 'var(--fg-3)', textTransform: 'uppercase', letterSpacing: 0.8, marginBottom: 10 }}>Legende</div>
-              {data.dimensions.map(d => (
-                <div key={d} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '4px 0', fontSize: 12 }}>
-                  <span style={{ width: 10, height: 10, borderRadius: 999, background: DIM_COLOR[d] || 'var(--fg-3)' }}/>
-                  <span>{d}</span>
-                </div>
-              ))}
+              <div style={{ display: 'flex', alignItems: 'center', marginBottom: 10 }}>
+                <span style={{ fontSize: 11, color: 'var(--fg-3)', textTransform: 'uppercase', letterSpacing: 0.8 }}>Legende</span>
+                {dimFilter && (
+                  <button className="btn ghost icon sm" style={{ marginLeft: 'auto' }} onClick={() => setDimFilter(null)} title="Filter zurücksetzen">
+                    <Icon name="x" size={11}/>
+                  </button>
+                )}
+              </div>
+              {data.dimensions.map(d => {
+                const active = dimFilter === d;
+                const dimmed = dimFilter && !active;
+                const count = graph.nodes.filter(n => n.dim === d).length;
+                return (
+                  <button
+                    key={d}
+                    onClick={() => setDimFilter(active ? null : d)}
+                    title={active ? 'Filter aufheben' : `Nur ${d} anzeigen (nochmal klicken → alles)`}
+                    style={{
+                      display: 'flex', alignItems: 'center', gap: 8, padding: '5px 6px',
+                      fontSize: 12, width: '100%', textAlign: 'left', borderRadius: 4,
+                      background: active ? 'var(--bg-3)' : 'transparent',
+                      color: dimmed ? 'var(--fg-3)' : 'var(--fg-1)',
+                      opacity: dimmed ? 0.5 : 1,
+                      cursor: 'pointer',
+                    }}
+                  >
+                    <span style={{ width: 10, height: 10, borderRadius: 999, background: DIM_COLOR[d] || 'var(--fg-3)' }}/>
+                    <span style={{ flex: 1 }}>{d}</span>
+                    <span className="mono" style={{ fontSize: 10.5, color: 'var(--fg-3)' }}>{count}</span>
+                  </button>
+                );
+              })}
               <hr className="sep" style={{ margin: '10px 0' }}/>
               <div className="mono" style={{ fontSize: 11, color: 'var(--fg-3)', lineHeight: 1.7 }}>
-                <div><b style={{ color: 'var(--fg-1)' }}>{graph.nodes.length}</b> Trends</div>
+                <div><b style={{ color: 'var(--fg-1)' }}>{filteredNodes.length}</b> Trends{dimFilter && <span> (von {graph.nodes.length})</span>}</div>
                 <div><b style={{ color: 'var(--fg-1)' }}>{filteredEdges.length}</b> Verbindungen ≥ {Math.round(minScore*100)}%</div>
                 <div><b style={{ color: 'var(--fg-1)' }}>{graph.edges.length}</b> Total</div>
               </div>
