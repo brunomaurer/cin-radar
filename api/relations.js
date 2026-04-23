@@ -87,9 +87,12 @@ Gib die 6 thematisch ähnlichsten als JSON zurück.`;
 }
 
 function signatureOf(trend, candidates) {
+  // candidates-IDs sortiert aufnehmen, damit Cache invalidiert wenn
+  // ein Kandidat gelöscht oder hinzugefügt wurde (nicht nur bei Änderung
+  // der Anzahl).
   const parts = [
     trend.id, trend.title, trend.dim, (trend.tags || []).join(','), trend.summary || '',
-    candidates.length,
+    candidates.map(c => c.id).sort().join(','),
   ];
-  return parts.join('|').slice(0, 400);
+  return parts.join('|').slice(0, 800);
 }

@@ -79,6 +79,8 @@ export default async function handler(req, res) {
     if (req.method === 'DELETE') {
       await kv.del(ITEM_KEY(id));
       await kv.lrem(INDEX_KEY, 0, id);
+      // Relations-Cache für diesen Trend mitlöschen, sonst Geister-Edges
+      await kv.del('relations:' + id);
       return res.status(204).end();
     }
 

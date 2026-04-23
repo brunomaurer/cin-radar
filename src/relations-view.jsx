@@ -1,7 +1,7 @@
 // Relations-Diagramm: Force-Graph, Matrix-Heatmap, Chord-Diagram
 import { useState, useEffect, useMemo } from 'react';
 import { Icon, DimensionDot, BarMeter, StageBadge } from './ui.jsx';
-import { relationsApi } from './api.js';
+import { relationsApi, trendsApi } from './api.js';
 
 const DIM_COLOR = {
   Technology: '#60A5FA', Society: '#F472B6', Economy: '#FBBF24',
@@ -17,8 +17,51 @@ export const RelationsView = ({ data, onOpenTrend }) => {
   const [minScore, setMinScore] = useState(0.5);
   const [hover, setHover] = useState(null); // { a, b, score, reason, x, y }
   const [selected, setSelected] = useState(null); // selected trend for popup
+  const [cleaningDupes, setCleaningDupes] = useState(false);
 
   const trends = data.trends;
+
+  // Duplikat-Erkennung: gruppiere nach normalisiertem Titel
+  const duplicates = useMemo(() => {
+    const byTitle = new Map();
+    for (const t of trends) {
+      const key = (t.title || '').trim().toLowerCase();
+      if (!key) continue;
+      if (!byTitle.has(key)) byTitle.set(key, []);
+      byTitle.get(key).push(t);
+    }
+    const groups = [];
+    for (const [, list] of byTitle) {
+      if (list.length > 1) {
+        // Älteste behalten (nach createdAt, Mock-Trends ohne createdAt gelten als älteste)
+        list.sort((a, b) => (a.createdAt || '0').localeCompare(b.createdAt || '0'));
+        groups.push({ keep: list[0], remove: list.slice(1) });
+      }
+    }
+    return groups;
+  }, [trends]);
+
+  const dupeCount = duplicates.reduce((a, g) => a + g.remove.length, 0);
+
+  const cleanDuplicates = async () => {
+    if (dupeCount === 0) return;
+    if (!confirm(`${dupeCount} doppelte Steckbriefe bereinigen? (behält jeweils den ältesten pro Titel)`)) return;
+    setCleaningDupes(true);
+    try {
+      const hidden = JSON.parse(localStorage.getItem('cin-hidden-trends') || '[]');
+      for (const g of duplicates) {
+        for (const t of g.remove) {
+          await trendsApi.remove(t.id).catch(() => {});
+          if (!hidden.includes(t.id)) hidden.push(t.id);
+        }
+      }
+      localStorage.setItem('cin-hidden-trends', JSON.stringify(hidden));
+      window.location.reload();
+    } catch (e) {
+      alert('Cleanup fehlgeschlagen: ' + e.message);
+      setCleaningDupes(false);
+    }
+  };
 
   const loadGraph = async (force = false) => {
     setLoading(true);
@@ -107,6 +150,19 @@ export const RelationsView = ({ data, onOpenTrend }) => {
           <div style={{ flex: 1, height: 4, background: 'var(--bg-3)', borderRadius: 2, overflow: 'hidden' }}>
             <div style={{ height: '100%', background: 'var(--accent)', width: `${(progress.done / Math.max(1, progress.total)) * 100}%`, transition: 'width 200ms' }}/>
           </div>
+        </div>
+      )}
+
+      {dupeCount > 0 && (
+        <div className="card" style={{ padding: 12, display: 'flex', alignItems: 'center', gap: 10, background: 'rgba(245,158,11,0.08)', borderColor: 'rgba(245,158,11,0.35)' }}>
+          <Icon name="bell" size={14}/>
+          <div style={{ flex: 1, fontSize: 12.5, color: 'var(--fg-1)', lineHeight: 1.4 }}>
+            <b>{dupeCount} Duplikat{dupeCount === 1 ? '' : 'e'}</b> erkannt in {duplicates.length} Gruppe{duplicates.length === 1 ? '' : 'n'}:{' '}
+            <span style={{ color: 'var(--fg-2)' }}>{duplicates.map(g => `"${g.keep.title}" (${g.remove.length + 1}×)`).join(', ')}</span>
+          </div>
+          <button className="btn sm" onClick={cleanDuplicates} disabled={cleaningDupes}>
+            {cleaningDupes ? 'Bereinige…' : <><Icon name="x" size={12}/> Bereinigen</>}
+          </button>
         </div>
       )}
 
