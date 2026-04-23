@@ -1,7 +1,7 @@
 // Explorer — table/list with filters, sort, search
 import { useState, useMemo, useEffect } from 'react';
 import { Icon, BarMeter, Sparkline, StageBadge, DimensionDot } from './ui.jsx';
-import { signalsApi, trendsApi } from './api.js';
+import { signalsApi, trendsApi, summaryApi } from './api.js';
 
 const processStages = [
   { k: 'all', l: 'All', c: 'var(--fg-2)' },
@@ -55,6 +55,189 @@ function rowsToCsv(rows, sep = ';') {
   const header = CSV_COLUMNS.map(([, l]) => escape(l)).join(sep);
   const body = rows.map(row => CSV_COLUMNS.map(([k]) => escape(row[k])).join(sep)).join('\r\n');
   return header + '\r\n' + body;
+}
+
+// ========== Management-Summary HTML ==========
+
+function escapeHtml(s) {
+  return String(s == null ? '' : s)
+    .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+}
+
+const DIM_COLOR_MAP = {
+  Technology: '#60A5FA', Society: '#F472B6', Economy: '#FBBF24',
+  Ecology: '#34D399', Politics: '#FB7185', Values: '#A78BFA',
+};
+
+function summaryCss() {
+  return `
+    * { box-sizing: border-box; }
+    html, body { margin: 0; padding: 0; background: #fff; color: #1B2A47; font-family: 'Inter', -apple-system, system-ui, sans-serif; }
+    body { padding: 32px 40px; max-width: 820px; margin: 0 auto; font-size: 12.5px; line-height: 1.55; }
+    h1 { margin: 0 0 4px; font-size: 28px; font-weight: 700; color: #0B1426; letter-spacing: -0.4px; }
+    h2 { margin: 28px 0 10px; font-size: 16px; font-weight: 700; color: #0B1426; letter-spacing: -0.2px; border-bottom: 1px solid #E5E7EB; padding-bottom: 6px; }
+    h3 { margin: 16px 0 6px; font-size: 13px; font-weight: 600; color: #374151; text-transform: uppercase; letter-spacing: 0.8px; }
+    .meta { font-size: 11.5px; color: #6B7280; margin-bottom: 24px; }
+    .exec { font-size: 13.5px; line-height: 1.65; color: #1F2937; padding: 16px 18px; background: #F3F4F6; border-radius: 8px; border-left: 4px solid #3B82F6; }
+    ul { margin: 6px 0 10px 18px; padding: 0; }
+    li { margin: 4px 0; }
+    .rec-cols { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 14px; margin-top: 10px; }
+    .rec-col { background: #F9FAFB; border-radius: 8px; padding: 12px 14px; border: 1px solid #E5E7EB; }
+    .rec-col h3 { margin: 0 0 8px; font-size: 11px; color: #3B82F6; }
+    .rec-col ul { margin: 0 0 0 18px; }
+    .opp-risk { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+    .opp-risk .card { padding: 12px 14px; border-radius: 8px; border: 1px solid #E5E7EB; }
+    .opp-risk .card.opp { background: #ECFDF5; border-color: #A7F3D0; }
+    .opp-risk .card.risk { background: #FEF2F2; border-color: #FECACA; }
+    .opp-risk .card h3 { margin: 0 0 8px; font-size: 11px; }
+    .opp-risk .card.opp h3 { color: #047857; }
+    .opp-risk .card.risk h3 { color: #B91C1C; }
+    .trend { page-break-inside: avoid; break-inside: avoid; margin-bottom: 18px; padding: 14px 16px; border: 1px solid #E5E7EB; border-radius: 8px; background: #FAFBFC; }
+    .trend .head { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; }
+    .trend .dim-dot { width: 10px; height: 10px; border-radius: 999px; flex-shrink: 0; }
+    .trend .title { font-size: 15px; font-weight: 700; color: #0B1426; flex: 1; }
+    .trend .id { font-family: 'JetBrains Mono', ui-monospace, monospace; color: #9CA3AF; font-size: 10.5px; }
+    .chips { display: flex; gap: 6px; flex-wrap: wrap; margin: 8px 0; }
+    .chip { font-size: 10.5px; padding: 2px 8px; border-radius: 999px; background: #E5E7EB; color: #374151; white-space: nowrap; }
+    .chip.stage { background: #DBEAFE; color: #1E40AF; }
+    .chip.hor { background: #F3E8FF; color: #6B21A8; font-family: 'JetBrains Mono', ui-monospace, monospace; }
+    .trend .summary { color: #374151; margin: 8px 0; line-height: 1.6; }
+    .trend .metrics { display: grid; grid-template-columns: repeat(5, 1fr); gap: 10px; margin-top: 10px; }
+    .trend .metric { background: #fff; border: 1px solid #E5E7EB; border-radius: 6px; padding: 8px 10px; }
+    .trend .metric label { font-size: 9.5px; color: #6B7280; text-transform: uppercase; letter-spacing: 0.6px; }
+    .trend .metric .val { font-family: 'JetBrains Mono', ui-monospace, monospace; font-size: 16px; font-weight: 700; color: #0B1426; margin-top: 2px; }
+    .trend .bar { height: 3px; background: #E5E7EB; border-radius: 999px; margin-top: 6px; overflow: hidden; }
+    .trend .bar > div { height: 100%; background: #3B82F6; }
+    .trend .extras { font-family: 'JetBrains Mono', ui-monospace, monospace; font-size: 10.5px; color: #6B7280; margin-top: 8px; display: flex; gap: 14px; flex-wrap: wrap; }
+    .footer { margin-top: 28px; padding-top: 14px; border-top: 1px solid #E5E7EB; font-size: 10.5px; color: #9CA3AF; text-align: center; }
+    .print-btn { position: fixed; top: 14px; right: 14px; padding: 8px 14px; border-radius: 6px; background: #3B82F6; color: #fff; border: 0; font-size: 12.5px; cursor: pointer; box-shadow: 0 2px 8px rgba(0,0,0,.15); }
+    .print-btn:hover { background: #2563EB; }
+    @media print {
+      body { padding: 24px 28px; }
+      .print-btn { display: none; }
+      .trend { box-shadow: none; }
+      h2 { page-break-after: avoid; }
+    }
+  `;
+}
+
+function buildSummaryLoadingHtml(count) {
+  return `<!doctype html><html lang="de"><head><meta charset="utf-8"><title>Management Summary · CIN Radar</title>
+<style>${summaryCss()}</style>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono&display=swap">
+</head><body>
+<h1>Management Summary</h1>
+<div class="meta">Generiere Executive Summary aus ${count} Steckbriefen…</div>
+<div class="exec" style="text-align:center;padding:32px;color:#6B7280">
+  Claude schreibt. Das Fenster öffnet den Druck-Dialog sobald fertig.
+</div>
+</body></html>`;
+}
+
+function summaryList(items) {
+  if (!items || items.length === 0) return '<p style="color:#9CA3AF">—</p>';
+  return '<ul>' + items.map(i => `<li>${escapeHtml(i)}</li>`).join('') + '</ul>';
+}
+
+function oppRiskList(items, cls) {
+  if (!items || items.length === 0) return '<p style="color:#9CA3AF">—</p>';
+  return '<ul>' + items.map(i => {
+    const text = escapeHtml(i.text || i);
+    const ref = i.trendTitle ? ` <span style="color:#6B7280;font-size:10.5px">— ${escapeHtml(i.trendTitle)}</span>` : '';
+    return `<li>${text}${ref}</li>`;
+  }).join('') + '</ul>';
+}
+
+function trendBlock(t) {
+  const color = DIM_COLOR_MAP[t.dim] || '#94A3B8';
+  const tags = (t.tags || []).map(tag => `<span class="chip">#${escapeHtml(tag)}</span>`).join('');
+  const hor = t.horizon ? `<span class="chip hor">${escapeHtml(t.horizon)}</span>` : '';
+  const stage = t.stage ? `<span class="chip stage">${escapeHtml(t.stage)}</span>` : '';
+  const owner = t.owner ? `<span>Owner: <b>${escapeHtml(t.owner)}</b></span>` : '';
+  const updated = t.updated ? `<span>Aktualisiert: ${escapeHtml(t.updated)}</span>` : '';
+  const signals = t.signals != null ? `<span>${t.signals} Signale</span>` : '';
+  const sources = t.sources != null ? `<span>${t.sources} Quellen</span>` : '';
+  const metric = (label, value, cls) => `
+    <div class="metric">
+      <label>${label}</label>
+      <div class="val">${value ?? '—'}</div>
+      ${typeof value === 'number' ? `<div class="bar"><div style="width:${value}%;background:${cls}"></div></div>` : ''}
+    </div>`;
+  return `
+    <div class="trend">
+      <div class="head">
+        <span class="dim-dot" style="background:${color}"></span>
+        <span class="title">${escapeHtml(t.title)}</span>
+        <span class="id">#${escapeHtml(t.id)}</span>
+      </div>
+      <div class="chips">
+        <span class="chip" style="background:${color}22;color:${color}">${escapeHtml(t.dim || '')}</span>
+        ${hor}${stage}${tags}
+      </div>
+      ${t.summary ? `<div class="summary">${escapeHtml(t.summary)}</div>` : ''}
+      <div class="metrics">
+        ${metric('Impact', t.impact, '#3B82F6')}
+        ${metric('Novelty', t.novelty, '#A78BFA')}
+        ${metric('Maturity', t.maturity, '#F59E0B')}
+        ${metric('Signals', t.signals, '#6B7280')}
+        ${metric('Sources', t.sources, '#6B7280')}
+      </div>
+      <div class="extras">${owner}${updated}${signals}${sources}</div>
+    </div>`;
+}
+
+function buildSummaryHtml(trends, summary) {
+  const date = new Date().toLocaleDateString('de-CH', { year: 'numeric', month: 'long', day: 'numeric' });
+  const recs = summary?.recommendations || {};
+  return `<!doctype html><html lang="de"><head><meta charset="utf-8"><title>Management Summary · CIN Radar</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono&display=swap">
+<style>${summaryCss()}</style>
+</head><body>
+<button class="print-btn" onclick="window.print()">Als PDF speichern</button>
+
+<h1>Management Summary</h1>
+<div class="meta">CIN Radar · ${escapeHtml(date)} · ${trends.length} Steckbriefe</div>
+
+<h2>Executive Summary</h2>
+<div class="exec">${escapeHtml(summary?.executiveSummary || '—')}</div>
+
+<h2>Kernerkenntnisse</h2>
+${summaryList(summary?.keyInsights)}
+
+<h2>Handlungsempfehlungen</h2>
+<div class="rec-cols">
+  <div class="rec-col">
+    <h3>Kurzfristig · 0–6 Monate</h3>
+    ${summaryList(recs.shortTerm)}
+  </div>
+  <div class="rec-col">
+    <h3>Mittelfristig · 6–18 Monate</h3>
+    ${summaryList(recs.midTerm)}
+  </div>
+  <div class="rec-col">
+    <h3>Langfristig · 18+ Monate</h3>
+    ${summaryList(recs.longTerm)}
+  </div>
+</div>
+
+<h2>Chancen und Risiken</h2>
+<div class="opp-risk">
+  <div class="card opp">
+    <h3>Chancen</h3>
+    ${oppRiskList(summary?.opportunities, 'opp')}
+  </div>
+  <div class="card risk">
+    <h3>Risiken</h3>
+    ${oppRiskList(summary?.risks, 'risk')}
+  </div>
+</div>
+
+<h2>Trend-Steckbriefe</h2>
+${trends.map(trendBlock).join('')}
+
+<div class="footer">CIN Radar · ${escapeHtml(date)} · cin-radar.vercel.app</div>
+</body></html>`;
 }
 
 function downloadCsv(rows) {
@@ -112,6 +295,43 @@ export const Explorer = ({ t, data, search, onOpenTrend, campaigns }) => {
       alert(`${count} Bild(er) generiert! Seite neu laden um sie zu sehen.`);
     } catch (e) {
       alert('Fehler: ' + e.message);
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+  const handleManagementSummary = async () => {
+    if (selected.size === 0) return;
+    const selectedTrends = [...selected].map(id => data.trends.find(t => t.id === id)).filter(Boolean);
+    if (selectedTrends.length === 0) return;
+
+    setActionLoading(true);
+    setActionOpen(false);
+
+    // Fenster sofort öffnen (sonst blockiert der Popup-Blocker, da der openCall nicht direkt
+    // aus dem Click-Event stammt wenn wir await davor hätten)
+    const w = window.open('', '_blank', 'width=920,height=1100');
+    if (!w) {
+      alert('Popup blockiert. Bitte Popups für cin-radar.vercel.app erlauben.');
+      setActionLoading(false);
+      return;
+    }
+    w.document.write(buildSummaryLoadingHtml(selectedTrends.length));
+    w.document.close();
+
+    try {
+      const r = await summaryApi.generate(selectedTrends);
+      const html = buildSummaryHtml(selectedTrends, r.summary);
+      w.document.open();
+      w.document.write(html);
+      w.document.close();
+      // Nach kurzem Delay drucken, damit Fonts/Bilder da sind
+      setTimeout(() => { try { w.focus(); w.print(); } catch {} }, 800);
+    } catch (e) {
+      w.document.open();
+      w.document.write(`<body style="font-family:sans-serif;padding:40px;background:#fff;color:#222"><h1>Fehler</h1><p>${escapeHtml(e.message)}</p></body>`);
+      w.document.close();
+      alert('Summary konnte nicht erzeugt werden: ' + e.message);
     } finally {
       setActionLoading(false);
     }
@@ -280,6 +500,10 @@ export const Explorer = ({ t, data, search, onOpenTrend, campaigns }) => {
                 <button onClick={handleBulkGenerateImages} style={{ display: 'flex', alignItems: 'center', gap: 8, width: '100%', padding: '8px 12px', fontSize: 12, color: 'var(--fg-0)', borderRadius: 4, textAlign: 'left' }}
                   onMouseEnter={e => e.currentTarget.style.background = 'var(--bg-2)'} onMouseLeave={e => e.currentTarget.style.background = 'transparent'}>
                   <Icon name="sparkles" size={12}/> Bild generieren
+                </button>
+                <button onClick={handleManagementSummary} style={{ display: 'flex', alignItems: 'center', gap: 8, width: '100%', padding: '8px 12px', fontSize: 12, color: 'var(--fg-0)', borderRadius: 4, textAlign: 'left' }}
+                  onMouseEnter={e => e.currentTarget.style.background = 'var(--bg-2)'} onMouseLeave={e => e.currentTarget.style.background = 'transparent'}>
+                  <Icon name="download" size={12}/> Management Summary als PDF
                 </button>
                 <button onClick={handleBulkDelete} style={{ display: 'flex', alignItems: 'center', gap: 8, width: '100%', padding: '8px 12px', fontSize: 12, color: 'var(--hot)', borderRadius: 4, textAlign: 'left' }}
                   onMouseEnter={e => e.currentTarget.style.background = 'var(--bg-2)'} onMouseLeave={e => e.currentTarget.style.background = 'transparent'}>

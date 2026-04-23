@@ -86,6 +86,10 @@ export const generateProposalsApi = {
   generate: (body) => request('/api/generate-proposals', { method: 'POST', body: JSON.stringify(body) }),
 };
 
+export const summaryApi = {
+  generate: (trends) => request('/api/summary', { method: 'POST', body: JSON.stringify({ trends }) }),
+};
+
 export const generateIdeasApi = {
   generate: (body) => request('/api/generate-ideas', { method: 'POST', body: JSON.stringify(body) }),
 };
