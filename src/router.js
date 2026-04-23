@@ -12,7 +12,11 @@ export function parseRoute(pathname) {
     case 'campaign':    return arg ? { route: 'campaignWorkspace', campaignId: arg } : { route: 'campaigns' };
     case 'initiatives': return { route: 'initiatives' };
     case 'initiative':  return arg ? { route: 'initiativeDetail', initiativeId: arg } : { route: 'initiatives' };
-    case 'analytics':   return { route: 'analytics' };
+    case 'analytics':   {
+      const valid = ['radar', 'matrix', 'timeline', 'funnel', 'relations'];
+      const v = valid.includes(arg) ? arg : 'radar';
+      return { route: 'analytics', analyticsView: v };
+    }
     case 'library':     return { route: 'library' };
     case 'cluster':     return arg ? { route: 'clusterDetail', clusterId: arg } : { route: 'process', processStage: 'cluster' };
     case 'signals':     return { route: 'signals' };
@@ -21,7 +25,7 @@ export function parseRoute(pathname) {
   }
 }
 
-export function buildPath({ route, trendId, campaignId, initiativeId, processStage, clusterId }) {
+export function buildPath({ route, trendId, campaignId, initiativeId, processStage, clusterId, analyticsView }) {
   switch (route) {
     case 'dashboard':         return '/';
     case 'explore':           return '/explore';
@@ -31,7 +35,7 @@ export function buildPath({ route, trendId, campaignId, initiativeId, processSta
     case 'campaignWorkspace': return '/campaign/' + campaignId;
     case 'initiatives':       return '/initiatives';
     case 'initiativeDetail':  return '/initiative/' + initiativeId;
-    case 'analytics':         return '/analytics';
+    case 'analytics':         return analyticsView ? '/analytics/' + analyticsView : '/analytics';
     case 'clusterDetail':     return '/cluster/' + clusterId;
     case 'library':           return '/library';
     case 'signals':           return '/signals';

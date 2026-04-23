@@ -583,8 +583,7 @@ export const ClusterDetail = ({ clusterId, onBack, onReviewAsTrend, campaignsDat
   );
 };
 
-export const AnalyticsHub = ({ t, data, onOpenTrend }) => {
-  const [view, setView] = useState("radar");
+export const AnalyticsHub = ({ t, data, onOpenTrend, view = "radar", setView }) => {
   return (
     <div style={{ display: "flex", flexDirection: "column", height: "100%" }}>
       <div style={{ padding: "14px 20px", borderBottom: "1px solid var(--line-1)", display: "flex", alignItems: "center", gap: 10 }}>
@@ -592,7 +591,7 @@ export const AnalyticsHub = ({ t, data, onOpenTrend }) => {
         <div style={{ flex: 1 }}/>
         <div style={{ display: "flex", background: "var(--bg-2)", border: "1px solid var(--line-2)", borderRadius: 6, padding: 2 }}>
           {[["radar","Radar","radar"],["matrix","Matrix","matrix"],["timeline","Timeline","timeline"],["funnel","Funnel","funnel"],["relations","Relations","link"]].map(([k, l, i]) => (
-            <button key={k} onClick={() => setView(k)} style={{ padding: "5px 12px", fontSize: 12, borderRadius: 4, background: view === k ? "var(--bg-3)" : "transparent", color: view === k ? "var(--fg-0)" : "var(--fg-3)", display: "inline-flex", alignItems: "center", gap: 6 }}>
+            <button key={k} onClick={() => setView?.(k)} style={{ padding: "5px 12px", fontSize: 12, borderRadius: 4, background: view === k ? "var(--bg-3)" : "transparent", color: view === k ? "var(--fg-0)" : "var(--fg-3)", display: "inline-flex", alignItems: "center", gap: 6 }}>
               <Icon name={i} size={12}/> {l}
             </button>
           ))}
