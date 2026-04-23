@@ -18,6 +18,60 @@ const processStageMap = {
   initiative: ['Mainstream', 'Fading'],
 };
 
+const CSV_COLUMNS = [
+  ['id',         'ID'],
+  ['title',      'Title'],
+  ['dim',        'Dimension'],
+  ['horizon',    'Horizon'],
+  ['stage',      'Stage'],
+  ['impact',     'Impact'],
+  ['novelty',    'Novelty'],
+  ['maturity',   'Maturity'],
+  ['signals',    'Signals'],
+  ['sources',    'Sources'],
+  ['owner',      'Owner'],
+  ['updated',    'Updated'],
+  ['ai',         'AI-Score'],
+  ['tags',       'Tags'],
+  ['summary',    'Summary'],
+  ['imageUrl',   'Image URL'],
+  ['campaignId', 'Campaign ID'],
+  ['channel',    'Channel'],
+  ['custom',     'Custom'],
+  ['subscribed', 'Subscribed'],
+  ['createdAt',  'Created At'],
+  ['updatedAt',  'Updated At'],
+];
+
+function rowsToCsv(rows, sep = ';') {
+  const escape = (v) => {
+    if (v == null) return '';
+    let s = Array.isArray(v) ? v.join(', ') : String(v);
+    if (s.includes(sep) || s.includes('"') || s.includes('\n') || s.includes('\r')) {
+      s = '"' + s.replace(/"/g, '""') + '"';
+    }
+    return s;
+  };
+  const header = CSV_COLUMNS.map(([, l]) => escape(l)).join(sep);
+  const body = rows.map(row => CSV_COLUMNS.map(([k]) => escape(row[k])).join(sep)).join('\r\n');
+  return header + '\r\n' + body;
+}
+
+function downloadCsv(rows) {
+  const csv = rowsToCsv(rows);
+  const BOM = '\uFEFF'; // UTF-8 BOM — damit Excel Umlaute richtig anzeigt
+  const blob = new Blob([BOM + csv], { type: 'text/csv;charset=utf-8' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  const stamp = new Date().toISOString().slice(0, 10);
+  a.href = url;
+  a.download = `trends-${stamp}.csv`;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+}
+
 export const Explorer = ({ t, data, search, onOpenTrend, campaigns }) => {
   const [dim, setDim] = useState("all");
   const [horizon, setHorizon] = useState("all");
@@ -215,7 +269,7 @@ export const Explorer = ({ t, data, search, onOpenTrend, campaigns }) => {
         <div className="mono" style={{ color: "var(--fg-3)", fontSize: 11 }}>
           {rows.length} {t("of")} {data.trends.length} {t("rows")}
         </div>
-        <button className="btn sm"><Icon name="download" size={13}/> CSV</button>
+        <button className="btn sm" onClick={() => downloadCsv(rows)} disabled={rows.length === 0} title={`${rows.length} Steckbriefe exportieren`}><Icon name="download" size={13}/> CSV</button>
         {selected.size > 0 && (
           <div style={{ position: 'relative' }}>
             <button className="btn primary sm" onClick={() => setActionOpen(!actionOpen)} disabled={actionLoading}>
