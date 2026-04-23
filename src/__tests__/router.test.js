@@ -43,8 +43,8 @@ describe('parseRoute', () => {
     expect(parseRoute('/campaign/camp1')).toEqual({ route: 'campaignWorkspace', campaignId: 'camp1' });
   });
 
-  it('/campaign without id falls back to process scout', () => {
-    expect(parseRoute('/campaign')).toEqual({ route: 'process', processStage: 'scout' });
+  it('/campaign without id falls back to campaigns list', () => {
+    expect(parseRoute('/campaign')).toEqual({ route: 'campaigns' });
   });
 
   it('/initiatives returns initiatives', () => {
