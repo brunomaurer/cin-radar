@@ -1,6 +1,6 @@
 // Relations-Diagramm: Force-Graph, Matrix-Heatmap, Chord-Diagram
 import { useState, useEffect, useMemo } from 'react';
-import { Icon, DimensionDot } from './ui.jsx';
+import { Icon, DimensionDot, BarMeter, StageBadge } from './ui.jsx';
 import { relationsApi } from './api.js';
 
 const DIM_COLOR = {
@@ -16,6 +16,7 @@ export const RelationsView = ({ data, onOpenTrend }) => {
   const [error, setError] = useState(null);
   const [minScore, setMinScore] = useState(0.5);
   const [hover, setHover] = useState(null); // { a, b, score, reason, x, y }
+  const [selected, setSelected] = useState(null); // selected trend for popup
 
   const trends = data.trends;
 
@@ -116,9 +117,9 @@ export const RelationsView = ({ data, onOpenTrend }) => {
       {graph && (
         <div style={{ flex: 1, minHeight: 0, display: 'flex', gap: 14 }}>
           <div className="card" style={{ flex: 1, minWidth: 0, padding: 12, overflow: 'hidden', position: 'relative' }}>
-            {variant === 'graph' && <ForceGraph nodes={graph.nodes} edges={filteredEdges} onOpenTrend={onOpenTrend} onHover={setHover}/>}
-            {variant === 'matrix' && <MatrixHeatmap nodes={graph.nodes} edges={filteredEdges} onOpenTrend={onOpenTrend} onHover={setHover}/>}
-            {variant === 'chord' && <ChordDiagram nodes={graph.nodes} edges={filteredEdges} onOpenTrend={onOpenTrend} onHover={setHover}/>}
+            {variant === 'graph' && <ForceGraph nodes={graph.nodes} edges={filteredEdges} onSelect={setSelected} onHover={setHover}/>}
+            {variant === 'matrix' && <MatrixHeatmap nodes={graph.nodes} edges={filteredEdges} onSelect={setSelected} onHover={setHover}/>}
+            {variant === 'chord' && <ChordDiagram nodes={graph.nodes} edges={filteredEdges} onSelect={setSelected} onHover={setHover}/>}
 
             {hover && (
               <div style={{
@@ -159,6 +160,95 @@ export const RelationsView = ({ data, onOpenTrend }) => {
           </div>
         </div>
       )}
+
+      {selected && <TrendPopup trend={selected} onClose={() => setSelected(null)} onOpenFull={onOpenTrend}/>}
+    </div>
+  );
+};
+
+// ========== Trend-Popup ==========
+
+const TrendPopup = ({ trend, onClose, onOpenFull }) => {
+  useEffect(() => {
+    const onKey = (e) => { if (e.key === 'Escape') onClose(); };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [onClose]);
+
+  return (
+    <div
+      onClick={onClose}
+      style={{
+        position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.55)',
+        display: 'grid', placeItems: 'center', zIndex: 70, padding: 24,
+      }}
+    >
+      <div
+        onClick={e => e.stopPropagation()}
+        className="card"
+        style={{
+          width: 520, maxWidth: '100%', maxHeight: '85vh',
+          display: 'flex', flexDirection: 'column',
+          background: 'var(--bg-1)', overflow: 'hidden',
+          boxShadow: 'var(--shadow-pop)',
+        }}
+      >
+        <div style={{ padding: '12px 16px', borderBottom: '1px solid var(--line-1)', display: 'flex', alignItems: 'center', gap: 10, flexShrink: 0 }}>
+          <DimensionDot dim={trend.dim} size={10}/>
+          <span className="mono" style={{ fontSize: 10.5, color: 'var(--fg-3)' }}>#{trend.id}</span>
+          <span className="mono" style={{ fontSize: 10.5, color: 'var(--fg-3)' }}>· {trend.dim}</span>
+          <div style={{ flex: 1 }}/>
+          <button className="btn ghost icon" onClick={onClose} title="Schliessen (Esc)">
+            <Icon name="x" size={14}/>
+          </button>
+        </div>
+
+        <div className="scroll" style={{ padding: 16, overflow: 'auto', flex: 1, minHeight: 0 }}>
+          {trend.imageUrl && (
+            <img src={trend.imageUrl} alt="" style={{ width: '100%', borderRadius: 8, marginBottom: 12, background: 'var(--bg-2)' }}/>
+          )}
+
+          <h2 style={{ margin: '0 0 10px', fontSize: 18, fontWeight: 600, color: 'var(--fg-0)', lineHeight: 1.3 }}>{trend.title}</h2>
+
+          <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap', marginBottom: 14 }}>
+            <StageBadge stage={trend.stage}/>
+            {trend.horizon && <span className="chip mono">{trend.horizon}</span>}
+            {trend.owner && <span className="chip mono">{trend.owner}</span>}
+            {(trend.tags || []).map(tag => <span key={tag} className="chip"><Icon name="hash" size={10}/>{tag}</span>)}
+          </div>
+
+          {trend.summary && (
+            <p style={{ margin: '0 0 16px', fontSize: 13, color: 'var(--fg-1)', lineHeight: 1.55 }}>{trend.summary}</p>
+          )}
+
+          <div style={{ display: 'grid', gridTemplateColumns: 'auto 1fr 40px', rowGap: 8, columnGap: 10, alignItems: 'center', marginBottom: 14 }}>
+            <span style={{ fontSize: 11.5, color: 'var(--fg-2)' }}>Impact</span>
+            <BarMeter value={trend.impact ?? 0} color="var(--accent)" height={4}/>
+            <span className="mono" style={{ fontSize: 11.5, color: 'var(--fg-1)', textAlign: 'right' }}>{trend.impact ?? 0}</span>
+
+            <span style={{ fontSize: 11.5, color: 'var(--fg-2)' }}>Novelty</span>
+            <BarMeter value={trend.novelty ?? 0} color="var(--ai)" height={4}/>
+            <span className="mono" style={{ fontSize: 11.5, color: 'var(--fg-1)', textAlign: 'right' }}>{trend.novelty ?? 0}</span>
+
+            <span style={{ fontSize: 11.5, color: 'var(--fg-2)' }}>Maturity</span>
+            <BarMeter value={trend.maturity ?? 0} color="#F59E0B" height={4}/>
+            <span className="mono" style={{ fontSize: 11.5, color: 'var(--fg-1)', textAlign: 'right' }}>{trend.maturity ?? 0}</span>
+          </div>
+
+          <div className="mono" style={{ fontSize: 11, color: 'var(--fg-3)', display: 'flex', gap: 14 }}>
+            <span><b style={{ color: 'var(--fg-1)' }}>{trend.signals ?? 0}</b> Signale</span>
+            <span><b style={{ color: 'var(--fg-1)' }}>{trend.sources ?? 0}</b> Quellen</span>
+          </div>
+        </div>
+
+        <div style={{ padding: '12px 16px', borderTop: '1px solid var(--line-1)', display: 'flex', gap: 8, flexShrink: 0 }}>
+          <button className="btn sm" onClick={() => onOpenFull?.(trend.id)}>
+            <Icon name="ext" size={12}/> Vollbild öffnen
+          </button>
+          <div style={{ flex: 1 }}/>
+          <button className="btn primary sm" onClick={onClose}>Schliessen</button>
+        </div>
+      </div>
     </div>
   );
 };
@@ -219,7 +309,7 @@ function runForceSim(nodes, edges, { iterations = 200, width = 800, height = 520
   return pos;
 }
 
-const ForceGraph = ({ nodes, edges, onOpenTrend, onHover }) => {
+const ForceGraph = ({ nodes, edges, onSelect, onHover }) => {
   const W = 800, H = 520;
   const positions = useMemo(() => runForceSim(nodes, edges, { width: W, height: H }),
     [nodes.map(n => n.id).join(','), edges.map(e => e.a + '|' + e.b + '|' + e.score.toFixed(2)).join(',')]);
@@ -248,7 +338,7 @@ const ForceGraph = ({ nodes, edges, onOpenTrend, onHover }) => {
         const size = 8 + (n.impact || 50) / 10;
         return (
           <g key={n.id} transform={`translate(${p.x},${p.y})`} style={{ cursor: 'pointer' }}
-             onClick={() => onOpenTrend?.(n.id)}
+             onClick={() => { onHover(null); onSelect?.(n); }}
              onMouseMove={ev => onHover({ title: n.title, reason: `${n.dim} · Impact ${n.impact}`, score: null, x: ev.nativeEvent.offsetX + 14, y: ev.nativeEvent.offsetY + 14 })}
              onMouseLeave={() => onHover(null)}>
             <circle r={size + 3} fill={DIM_COLOR[n.dim] || '#94A3B8'} opacity={0.2}/>
@@ -265,7 +355,7 @@ const ForceGraph = ({ nodes, edges, onOpenTrend, onHover }) => {
 
 // ========== Matrix Heatmap ==========
 
-const MatrixHeatmap = ({ nodes, edges, onOpenTrend, onHover }) => {
+const MatrixHeatmap = ({ nodes, edges, onSelect, onHover }) => {
   const pair = new Map();
   for (const e of edges) pair.set([e.a, e.b].sort().join('|'), e);
 
@@ -301,7 +391,7 @@ const MatrixHeatmap = ({ nodes, edges, onOpenTrend, onHover }) => {
               width={cell - 1} height={cell - 1}
               fill="var(--accent)" opacity={score * 0.95}
               style={{ cursor: e ? 'pointer' : 'default' }}
-              onClick={() => e && onOpenTrend?.(col.id)}
+              onClick={() => e && onSelect?.(col)}
               onMouseMove={ev => e && onHover({
                 title: row.title + ' ↔ ' + col.title,
                 reason: e.reason, score,
@@ -319,7 +409,7 @@ const MatrixHeatmap = ({ nodes, edges, onOpenTrend, onHover }) => {
 
 // ========== Chord Diagram ==========
 
-const ChordDiagram = ({ nodes, edges, onOpenTrend, onHover }) => {
+const ChordDiagram = ({ nodes, edges, onSelect, onHover }) => {
   const W = 720, H = 520;
   const cx = W / 2, cy = H / 2;
   const r = Math.min(W, H) / 2 - 80;
@@ -364,7 +454,7 @@ const ChordDiagram = ({ nodes, edges, onOpenTrend, onHover }) => {
         const textAnchor = Math.cos(p.angle) > 0.3 ? 'start' : Math.cos(p.angle) < -0.3 ? 'end' : 'middle';
         const title = n.title.length > 24 ? n.title.slice(0, 24) + '…' : n.title;
         return (
-          <g key={n.id} style={{ cursor: 'pointer' }} onClick={() => onOpenTrend?.(n.id)}
+          <g key={n.id} style={{ cursor: 'pointer' }} onClick={() => { onHover(null); onSelect?.(n); }}
              onMouseMove={ev => onHover({ title: n.title, reason: `${n.dim} · Impact ${n.impact}`, score: null, x: ev.nativeEvent.offsetX + 14, y: ev.nativeEvent.offsetY + 14 })}
              onMouseLeave={() => onHover(null)}>
             <circle cx={p.x} cy={p.y} r={size + 3} fill={DIM_COLOR[n.dim] || '#94A3B8'} opacity={0.25}/>
