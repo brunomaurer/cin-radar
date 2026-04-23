@@ -189,7 +189,8 @@ function trendBlock(t) {
 
 // ========== Audio Briefing HTML ==========
 
-function buildAudioLoadingHtml(count) {
+function buildAudioLoadingHtml(count, language = 'de') {
+  const langLabel = language === 'de-CH' ? 'Schweizerdeutsch' : 'Hochdeutsch';
   return `<!doctype html><html lang="de"><head><meta charset="utf-8"><title>Audio Briefing · CIN Radar</title>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap">
 <style>
@@ -202,7 +203,7 @@ function buildAudioLoadingHtml(count) {
   .hint { font-size: 11.5px; color: #6B7A96; margin-top: 14px; }
 </style></head><body>
 <h1>Audio Briefing wird erzeugt</h1>
-<div class="meta">${count} Steckbriefe</div>
+<div class="meta">${count} Steckbriefe · ${langLabel}</div>
 <div class="box">
   <div class="shimmer">Claude schreibt das Script, OpenAI synthetisiert die Stimme…</div>
   <div class="hint">~10-20 Sekunden. Fenster offenlassen.</div>
@@ -210,9 +211,11 @@ function buildAudioLoadingHtml(count) {
 </body></html>`;
 }
 
-function buildAudioHtml(trends, script, audioDataUrl) {
+function buildAudioHtml(trends, script, audioDataUrl, language = 'de') {
   const date = new Date().toLocaleDateString('de-CH', { year: 'numeric', month: 'long', day: 'numeric' });
-  const filename = `cin-radar-briefing-${new Date().toISOString().slice(0,10)}.mp3`;
+  const langSuffix = language === 'de-CH' ? '-chde' : '';
+  const langLabel = language === 'de-CH' ? 'Schweizerdeutsch' : 'Hochdeutsch';
+  const filename = `cin-radar-briefing-${new Date().toISOString().slice(0,10)}${langSuffix}.mp3`;
   const trendLinks = trends.map(t => `<li><b>${escapeHtml(t.title)}</b> <span style="color:#6B7A96;font-size:11px">· ${escapeHtml(t.dim)} · ${escapeHtml(t.stage)}</span></li>`).join('');
   return `<!doctype html><html lang="de"><head><meta charset="utf-8"><title>Audio Briefing · CIN Radar</title>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap">
@@ -235,7 +238,7 @@ function buildAudioHtml(trends, script, audioDataUrl) {
   .script { background: #070D1A; color: #9AA8C2; padding: 20px 24px; border-radius: 10px; border: 1px solid #17253F; font-size: 13.5px; line-height: 1.75; white-space: pre-wrap; }
 </style></head><body>
 <h1>Audio Briefing</h1>
-<div class="meta">CIN Radar · ${escapeHtml(date)} · ${trends.length} Steckbriefe</div>
+<div class="meta">CIN Radar · ${escapeHtml(date)} · ${trends.length} Steckbriefe · ${langLabel}</div>
 
 <div class="player">
   <audio controls autoplay src="${audioDataUrl}"></audio>
@@ -402,7 +405,7 @@ export const Explorer = ({ t, data, search, onOpenTrend, campaigns }) => {
     }
   };
 
-  const handleAudioBriefing = async () => {
+  const handleAudioBriefing = async (language = 'de') => {
     if (selected.size === 0) return;
     const selectedTrends = [...selected].map(id => data.trends.find(t => t.id === id)).filter(Boolean);
     if (selectedTrends.length === 0) return;
@@ -416,11 +419,11 @@ export const Explorer = ({ t, data, search, onOpenTrend, campaigns }) => {
       setActionLoading(false);
       return;
     }
-    w.document.write(buildAudioLoadingHtml(selectedTrends.length));
+    w.document.write(buildAudioLoadingHtml(selectedTrends.length, language));
     w.document.close();
 
     try {
-      const scriptRes = await voiceApi.script(selectedTrends);
+      const scriptRes = await voiceApi.script(selectedTrends, language);
       const script = scriptRes.script;
       const audioBlob = await voiceApi.tts(script, 'nova');
       const dataUrl = await new Promise((resolve, reject) => {
@@ -429,7 +432,7 @@ export const Explorer = ({ t, data, search, onOpenTrend, campaigns }) => {
         reader.onerror = reject;
         reader.readAsDataURL(audioBlob);
       });
-      const html = buildAudioHtml(selectedTrends, script, dataUrl);
+      const html = buildAudioHtml(selectedTrends, script, dataUrl, language);
       w.document.open();
       w.document.write(html);
       w.document.close();
@@ -611,9 +614,13 @@ export const Explorer = ({ t, data, search, onOpenTrend, campaigns }) => {
                   onMouseEnter={e => e.currentTarget.style.background = 'var(--bg-2)'} onMouseLeave={e => e.currentTarget.style.background = 'transparent'}>
                   <Icon name="download" size={12}/> Management Summary als PDF
                 </button>
-                <button onClick={handleAudioBriefing} style={{ display: 'flex', alignItems: 'center', gap: 8, width: '100%', padding: '8px 12px', fontSize: 12, color: 'var(--fg-0)', borderRadius: 4, textAlign: 'left' }}
+                <button onClick={() => handleAudioBriefing('de')} style={{ display: 'flex', alignItems: 'center', gap: 8, width: '100%', padding: '8px 12px', fontSize: 12, color: 'var(--fg-0)', borderRadius: 4, textAlign: 'left' }}
                   onMouseEnter={e => e.currentTarget.style.background = 'var(--bg-2)'} onMouseLeave={e => e.currentTarget.style.background = 'transparent'}>
-                  <Icon name="sparkles" size={12}/> Audio Briefing als MP3
+                  <Icon name="sparkles" size={12}/> Audio Briefing (Hochdeutsch)
+                </button>
+                <button onClick={() => handleAudioBriefing('de-CH')} style={{ display: 'flex', alignItems: 'center', gap: 8, width: '100%', padding: '8px 12px', fontSize: 12, color: 'var(--fg-0)', borderRadius: 4, textAlign: 'left' }}
+                  onMouseEnter={e => e.currentTarget.style.background = 'var(--bg-2)'} onMouseLeave={e => e.currentTarget.style.background = 'transparent'}>
+                  <Icon name="sparkles" size={12}/> Audio Briefing (Schweizerdeutsch)
                 </button>
                 <button onClick={handleBulkDelete} style={{ display: 'flex', alignItems: 'center', gap: 8, width: '100%', padding: '8px 12px', fontSize: 12, color: 'var(--hot)', borderRadius: 4, textAlign: 'left' }}
                   onMouseEnter={e => e.currentTarget.style.background = 'var(--bg-2)'} onMouseLeave={e => e.currentTarget.style.background = 'transparent'}>

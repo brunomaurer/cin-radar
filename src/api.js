@@ -91,7 +91,7 @@ export const summaryApi = {
 };
 
 export const voiceApi = {
-  script: (trends) => request('/api/voice-script', { method: 'POST', body: JSON.stringify({ trends }) }),
+  script: (trends, language = 'de') => request('/api/voice-script', { method: 'POST', body: JSON.stringify({ trends, language }) }),
   tts: async (script, voice = 'nova') => {
     const res = await fetch('/api/voice-tts', {
       method: 'POST',
