@@ -2,6 +2,7 @@
 import { Fragment, useState, useEffect } from 'react';
 import { Icon, BarMeter, DimensionDot } from './ui.jsx';
 import { Radar, Matrix, Timeline, Funnel } from './viz.jsx';
+import { RelationsView } from './relations-view.jsx';
 import { useLocalStorage } from './useLocalStorage.js';
 import { conceptsApi, clustersApi, clusterToTrendApi, signalsApi } from './api.js';
 
@@ -590,7 +591,7 @@ export const AnalyticsHub = ({ t, data, onOpenTrend }) => {
         <h1 style={{ margin: 0, fontSize: 18, fontWeight: 600, color: "var(--fg-0)" }}>Analytics</h1>
         <div style={{ flex: 1 }}/>
         <div style={{ display: "flex", background: "var(--bg-2)", border: "1px solid var(--line-2)", borderRadius: 6, padding: 2 }}>
-          {[["radar","Radar","radar"],["matrix","Matrix","matrix"],["timeline","Timeline","timeline"],["funnel","Funnel","funnel"]].map(([k, l, i]) => (
+          {[["radar","Radar","radar"],["matrix","Matrix","matrix"],["timeline","Timeline","timeline"],["funnel","Funnel","funnel"],["relations","Relations","link"]].map(([k, l, i]) => (
             <button key={k} onClick={() => setView(k)} style={{ padding: "5px 12px", fontSize: 12, borderRadius: 4, background: view === k ? "var(--bg-3)" : "transparent", color: view === k ? "var(--fg-0)" : "var(--fg-3)", display: "inline-flex", alignItems: "center", gap: 6 }}>
               <Icon name={i} size={12}/> {l}
             </button>
@@ -602,6 +603,7 @@ export const AnalyticsHub = ({ t, data, onOpenTrend }) => {
         {view === "matrix" && <Matrix data={data} onOpenTrend={onOpenTrend}/>}
         {view === "timeline" && <Timeline data={data} onOpenTrend={onOpenTrend}/>}
         {view === "funnel" && <Funnel data={data}/>}
+        {view === "relations" && <RelationsView data={data} onOpenTrend={onOpenTrend}/>}
       </div>
     </div>
   );
